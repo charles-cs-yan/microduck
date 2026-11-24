@@ -6,7 +6,7 @@
 
 **Stage Companion Robot** - voice-driven follow, dance and go-home for a biped robot duck
 
-_Say "Let's go."_
+_Say "Let's go."_ · [Devlog](https://charles-cs-yan.github.io/microduck/)
 
 <br>
 
@@ -70,7 +70,7 @@ stateDiagram-v2
 
 ## Field notes
 
-Measured on the real duck and in simulation. The [devlog](docs/devlog/microduck-devlog.html) has the full
+Measured on the real duck and in simulation. The [devlog](https://charles-cs-yan.github.io/microduck/) has the full
 record with charts.
 
 > Below **0.05 m/s** the duck does not walk at all: `robotd` picks its standing network. At 0.08 it steps in
