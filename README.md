@@ -6,7 +6,7 @@
 
 **Stage Companion Robot** - voice-driven follow, dance and go-home for a biped robot duck
 
-_Say "Let's go."_ · [Devlog](https://charles-cs-yan.github.io/microduck/)
+_Say "Let's go."_
 
 <br>
 
@@ -50,18 +50,9 @@ IMU and servo health, and the module stops the duck whenever it loses its target
 | 2 | **"Let's party!"** | Dances on the spot: sway, nod, chatter, chirp, up to 30 s | `d` |
 | 3 | **"Let's go home"** | Turns 180° and follows the host off stage | `h` |
 
-```mermaid
-stateDiagram-v2
-    direction LR
-    [*] --> idle
-    idle --> follow: "Let's go"
-    follow --> idle: host stops
-    idle --> dance: "Let's party"
-    dance --> home: "Let's go home"
-    home --> follow: turned 180°
-    follow --> idle: stop
-    idle --> [*]
-```
+<div align="center">
+  <img src="docs/assets/show-flow.svg" alt="Show flow: idle, then follow on Let's go, idle when the host stops, dance on Let's party, home on Let's go home, follow once turned 180 degrees, idle on key s" width="100%">
+</div>
 
 "Let's go" depends on context: from standby it means follow, after a dance it means go home. A clipped
 "Let's go home" therefore still does the right thing.
@@ -70,8 +61,7 @@ stateDiagram-v2
 
 ## Field notes
 
-Measured on the real duck and in simulation. The [devlog](https://charles-cs-yan.github.io/microduck/) has the full
-record with charts.
+Measured on the real duck and in simulation.
 
 > Below **0.05 m/s** the duck does not walk at all: `robotd` picks its standing network. At 0.08 it steps in
 > place. It walks at 0.12.
@@ -156,15 +146,9 @@ restores it on any exit. It asks the operator to type `yes` before the duck may 
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    mic["Microphone<br/>sherpa-onnx keyword spotter"] --> app
-    cam["Camera<br/>ArUco worker, ~2 Hz"] --> app
-    kbd["Keyboard over SSH<br/>operator backup"] --> app
-    app["follow.app<br/>mode machine + tracker"] --> guard
-    guard{{"MotionGuard<br/>safety gate"}} --> sock["/run/robotd.sock<br/>JSON-RPC 2.0"]
-    sock --> robotd["robotd, 50 Hz<br/>policy nets · fall protection · 15 servos"]
-```
+<div align="center">
+  <img src="docs/assets/architecture.svg" alt="Architecture: microphone, camera and keyboard feed follow.app, which passes every motion request through MotionGuard to robotd over its socket" width="100%">
+</div>
 
 The module is only ever a **client** of `robotd`. It sends intents over the socket and never touches motor,
 fall-protection or policy code.

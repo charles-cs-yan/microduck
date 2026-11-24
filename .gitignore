@@ -10,3 +10,6 @@ __pycache__/
 *.log
 *.jsonl
 .claude/
+
+# devlog lives only as a private claude.ai artifact
+/docs/devlog/

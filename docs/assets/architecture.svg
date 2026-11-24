@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 300" width="980" height="300">
+  <title>Architecture: inputs, follow.app, MotionGuard, robotd</title>
+  <style>
+    .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+    .sans { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
+    .col { fill: #93a0bd; font-size: 12px; font-weight: 700; letter-spacing: .12em; }
+    .box { fill: #121a30; stroke: #263355; stroke-width: 1.5; }
+    .name { font-size: 15px; font-weight: 700; }
+    .desc { fill: #93a0bd; font-size: 12.5px; }
+    .wire { stroke: #5d6a88; stroke-width: 2; fill: none; }
+    .pulse { stroke: #58d6e6; stroke-width: 2; stroke-dasharray: 3 9; fill: none; animation: run 1s linear infinite; }
+    @keyframes run { to { stroke-dashoffset: -24; } }
+    @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+  </style>
+  <defs>
+    <marker id="h" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#5d6a88"/>
+    </marker>
+  </defs>
+
+  <rect width="980" height="300" rx="20" fill="#0b1020"/>
+
+  <g class="mono">
+    <text class="col" x="20" y="36">INPUTS</text>
+    <text class="col" x="282" y="36">DECIDE</text>
+    <text class="col" x="520" y="36">GUARD</text>
+    <text class="col" x="758" y="36">ROBOT</text>
+  </g>
+
+  <!-- inputs -->
+  <g class="sans">
+    <rect class="box" x="20" y="52" width="216" height="64" rx="12"/>
+    <text class="name" x="38" y="78" fill="#ffd23f">Microphone</text>
+    <text class="desc" x="38" y="99">sherpa-onnx keyword spotter</text>
+
+    <rect class="box" x="20" y="128" width="216" height="64" rx="12"/>
+    <text class="name" x="38" y="154" fill="#58d6e6">Camera</text>
+    <text class="desc" x="38" y="175">ArUco marker, about 2 Hz</text>
+
+    <rect class="box" x="20" y="204" width="216" height="64" rx="12"/>
+    <text class="name" x="38" y="230" fill="#ff8a3d">Keyboard over SSH</text>
+    <text class="desc" x="38" y="251">operator backup, Enter = stop</text>
+  </g>
+
+  <!-- wires into the app -->
+  <g class="wire" marker-end="url(#h)">
+    <path d="M236 84 C 258 84 258 150 280 150"/>
+    <path d="M236 160 H280"/>
+    <path d="M236 236 C 258 236 258 170 280 170"/>
+  </g>
+
+  <!-- decide -->
+  <g class="sans">
+    <rect x="282" y="104" width="200" height="112" rx="14" fill="#18223d" stroke="#ffd23f" stroke-width="2"/>
+    <text class="name mono" x="300" y="134" fill="#ffd23f">follow.app</text>
+    <text class="desc" x="300" y="158">mode machine</text>
+    <text class="desc" x="300" y="177">tracker: pulse, stop, look</text>
+    <text class="desc" x="300" y="196">turns on odometry</text>
+  </g>
+
+  <path class="wire" d="M482 160 H516" marker-end="url(#h)"/>
+
+  <!-- guard -->
+  <g class="sans">
+    <rect x="518" y="68" width="210" height="184" rx="14" fill="#121a30" stroke="#ffb347" stroke-width="2" stroke-dasharray="6 4"/>
+    <text class="name mono" x="536" y="98" fill="#ffb347">MotionGuard</text>
+    <g class="desc">
+      <text x="536" y="124">battery ≥ 7.6 V to walk</text>
+      <text x="536" y="145">CPU &lt; 90 °C</text>
+      <text x="536" y="166">≤ 0.12 m/s, never sideways</text>
+      <text x="536" y="187">state fresh, not fallen</text>
+      <text x="536" y="208">IMU and servo bus healthy</text>
+      <text x="536" y="229">always ends with stop</text>
+    </g>
+  </g>
+
+  <path class="wire" d="M728 160 H754" marker-end="url(#h)"/>
+  <path class="pulse" d="M728 160 H754"/>
+
+  <!-- robot -->
+  <g class="sans">
+    <rect class="box" x="756" y="68" width="204" height="72" rx="12"/>
+    <text class="name mono" x="774" y="96" fill="#e8ecf6">/run/robotd.sock</text>
+    <text class="desc" x="774" y="118">JSON-RPC 2.0 intents</text>
+
+    <path class="wire" d="M858 140 V170" marker-end="url(#h)"/>
+
+    <rect class="box" x="756" y="172" width="204" height="80" rx="12"/>
+    <text class="name mono" x="774" y="200" fill="#e8ecf6">robotd · 50 Hz</text>
+    <text class="desc" x="774" y="221">policy nets, fall protection</text>
+    <text class="desc" x="774" y="240">15 servos, 500 ms deadman</text>
+  </g>
+
+  <text class="mono" x="960" y="285" text-anchor="end" font-size="12" fill="#5d6a88">follow/ is only a client: it never touches motor, fall or policy code</text>
+</svg>
