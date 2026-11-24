@@ -26,7 +26,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, TextIO
 
 COMMANDS = ("follow", "gaze", "stop", "home", "greet", "quit",
             "sit", "stand", "crouch", "pick", "roll", "kick_left", "kick_right", "dance",
-            "letsgo")  # voice "LET'S GO": FollowApp decides by mode (follow from idle, home on stage)
+            "letsgo", "straight")  # voice "LET'S GO": FollowApp decides by mode (follow from idle, home on stage)
 
 # Keyboard backup: one letter or word per line (works over plain SSH, no raw terminal needed).
 KEY_ALIASES = {
@@ -44,6 +44,7 @@ KEY_ALIASES = {
     "2": "roll", "roll": "roll",
     "3": "kick_left", "kick left": "kick_left",
     "4": "kick_right", "kick right": "kick_right",
+    "k": "straight", "straight": "straight", "walk straight": "straight",
     "q": "quit", "quit": "quit", "exit": "quit",
 }
 
@@ -247,7 +248,7 @@ class CommandQueue:
             for line in stream:
                 command = parse_command(line.rstrip("\n"))
                 if command is None:
-                    log(f"不認得的指令：{line.strip()!r}（f=跟隨 g=注視 w=打招呼 d=跳舞 h=回家 s/Enter=停 q=結束 x=坐下 u=站起來 p=趴下 1=撿 2=翻滾 3/4=踢）")
+                    log(f"不認得的指令：{line.strip()!r}（f=跟隨 g=注視 w=打招呼 d=跳舞 h=回家 k=直走 s/Enter=停 q=結束 x=坐下 u=站起來 p=趴下 1=撿 2=翻滾 3/4=踢）")
                 else:
                     self.put(command)
             self.put("quit")

@@ -61,10 +61,15 @@ from .posture import (BUSY_POLICIES, CROUCH, SITTING_POLICIES, STANDING_POLICIES
                       bring_up_problem, rise_problem, still)
 
 # Voice feedback: the call made when a spoken command switches mode (greet/dance have their own).
-ACK_SOUNDS = {"follow": "chirp", "gaze": "peck", "home": "coo", "idle": "coo"}
+ACK_SOUNDS = {"follow": "chirp", "gaze": "peck", "home": "coo", "idle": "coo", "straight": "chirp"}
+# `k`: walk straight ahead a fixed distance, no camera. Odometry measures the distance; the
+# timeout is the backstop because odom under-reads at low speed (0.12 m/s × 3 s read 0.22 m).
+# No heading correction: odom.yaw's sign is not verified on this duck yet.
+STRAIGHT_DISTANCE = 2.0  # m
+STRAIGHT_TIMEOUT = 35.0  # s; at the ~0.07 m/s the duck really makes, 2 m takes ~30 s
 LOST_HINT_AFTER = 4.0    # s without a marker in follow/gaze before the duck "asks"
 LOST_HINT_REPEAT = math.inf  # once per mode: repeated calls drown out the host's next command
-MODES = ("idle", "gaze", "follow", "home", "greet", "sit", "crouch", "skill", "dance")
+MODES = ("idle", "gaze", "follow", "home", "greet", "sit", "crouch", "skill", "dance", "straight")
 POSTURE_COMMANDS = ("sit", "stand", "crouch", "pick", "roll", "kick_left", "kick_right", "dance")
 VISION_WORKER = Path(__file__).resolve().parent / "vision" / "aruco_worker.py"
 RELAY_WORKER = Path(__file__).resolve().parent / "vision" / "relay_worker.py"
@@ -108,6 +113,9 @@ class FollowApp:
         self.turn_options = turn_options
         self.align_threshold = align_threshold
         self.home_angle = home_angle
+        self.straight_distance = STRAIGHT_DISTANCE
+        self.straight_timeout = STRAIGHT_TIMEOUT
+        self.straight_from = (None, None, 0.0)
         self.turn: Optional[Turn] = None
         self.turn_kind: Optional[str] = None   # "align" or "home"
         self.turn_head = list(ZERO_HEAD)
@@ -190,6 +198,8 @@ class FollowApp:
             if self.mode != "greet":
                 self.return_mode = self.mode if self.mode in ("gaze", "follow") else "idle"
             self.set_mode("greet", "指令：打招呼")
+        elif command == "straight":
+            self.set_mode("straight", f"指令：直走 {self.straight_distance:g} 公尺")
         elif command == "quit":
             self.set_mode("idle", "指令：結束")
             self.running = False
@@ -427,12 +437,53 @@ class FollowApp:
                 self.set_mode("follow", "回家：不做固定轉身，直接跟隨主持人")
             else:
                 self._start_turn("home", self.home_angle, self._clock(), self._state_head())
+        if mode == "straight":
+            odom = (self.guard.client.state or {}).get("odom") or {}
+            pos = odom.get("position")
+            self.straight_from = (list(pos[:2]) if isinstance(pos, list) and len(pos) >= 2 else None,
+                                  odom_yaw(self.guard.client.state), self._clock())
         if mode == "greet":
             self.routine = Routine(GREETING, self._clock(), self._state_head())
         if mode == "dance":
             self.routine = Routine(DANCE, self._clock(), self._state_head(), name="跳舞", loop_until=DANCE_MAX)
 
     # ── scripted interaction ─────────────────────────────────────────────────
+    def _tick_straight(self, now: float, stalled: bool, gap) -> Optional[Decision]:
+        """Walk straight ahead until odometry says `straight_distance` m or the timeout passes."""
+        start, yaw0, t0 = self.straight_from
+        problem = self.guard.problem() or (f"控制迴圈停頓 {gap:.2f} 秒" if stalled else "")
+        odom = (self.guard.client.state or {}).get("odom") or {}
+        pos = odom.get("position")
+        if not problem and (start is None or yaw0 is None or not isinstance(pos, list) or len(pos) < 2):
+            problem = "沒有 odom 位置，無法量距離"
+        if problem:
+            self._log(f"直走中止：{problem}")
+            self.guard.halt(problem)
+            self.set_mode("idle", "直走中止")
+            return None
+        dx, dy = pos[0] - start[0], pos[1] - start[1]
+        along = dx * math.cos(yaw0) + dy * math.sin(yaw0)  # progress along the starting heading
+        elapsed = now - t0
+        if along >= self.straight_distance or elapsed >= self.straight_timeout:
+            why = (f"走完 {along:.2f} 公尺（odom）" if along >= self.straight_distance
+                   else f"時間到 {elapsed:.0f} 秒，odom 量到 {along:.2f} 公尺")
+            self.guard.confirm_stopped()
+            self._log(f"直走結束：{why}")
+            self.set_mode("idle", "直走結束")
+            return None
+        refused = self.guard.set_velocity(self.guard.limits.max_forward, 0.0)
+        if refused:
+            self._log(f"直走中止：{refused}")
+            self.set_mode("idle", "直走被擋下")
+            return None
+        self.guard.set_head(list(ZERO_HEAD))
+        reason = f"直走 {along:.2f}/{self.straight_distance:g} m · {elapsed:.0f}/{self.straight_timeout:g} s"
+        self.problem = ""
+        out = Decision(head=list(ZERO_HEAD), vx=self.guard.limits.max_forward,
+                       desired_vx=self.guard.limits.max_forward, reason=reason, valid=True, phase="straight")
+        self.last_decision = out
+        return out
+
     def _tick_greet(self, now: float) -> Optional[Decision]:
         """Greeting and dance: a keyframe routine on the spot (head, mouth, sounds, body pose)."""
         label = self.routine.name
@@ -577,7 +628,7 @@ class FollowApp:
             self.problem = ""
             return self._tick_sit(now)
         hard = hard_problem(self.guard.client.state, self.guard.health, self.guard.limits,
-                            self.guard.battery_low, walking=self.mode in ("follow", "home"))
+                            self.guard.battery_low, walking=self.mode in ("follow", "home", "straight"))
         if hard:
             # A fall, protection, overheating, a low battery…: never resume by itself, even once the
             # duck is stood back up — upstream stops control here too. The operator asks again.
@@ -587,6 +638,8 @@ class FollowApp:
             return None
         if self.mode in ("greet", "dance"):
             return self._tick_greet(now)
+        if self.mode == "straight":
+            return self._tick_straight(now, stalled, gap)
         if self.mode == "crouch":
             return self._tick_crouch(now)
 
@@ -841,7 +894,7 @@ def main(argv=None) -> int:
                 if args.command_pipe:
                     start_command_pipe(Path(args.command_pipe), commands, say)
                     say(f"語音（筆電辨識）：從 {args.command_pipe} 接收指令")
-                say("指令：f=跟隨 g=注視 w=打招呼 d=跳舞 h=回家 s 或 Enter=停 q=結束 ｜ x=坐下 u=站起來 p=趴下 1=撿東西 2=翻滾 3/4=左/右踢（2、3、4 和從地上站起來都要連按兩次）")
+                say("指令：f=跟隨 g=注視 w=打招呼 d=跳舞 h=回家 k=直走2公尺 s 或 Enter=停 q=結束 ｜ x=坐下 u=站起來 p=趴下 1=撿東西 2=翻滾 3/4=左/右踢（2、3、4 和從地上站起來都要連按兩次）")
                 if args.voice:
                     voice = VoiceCommands(commands, log=say).start(
                         default_python(args.speech_dir),
