@@ -59,6 +59,10 @@ from .greet import DANCE, DANCE_MAX, GREETING, Routine
 from .posture import (BUSY_POLICIES, CROUCH, SITTING_POLICIES, STANDING_POLICIES, STATE_FRESH,
                       bring_up_problem, rise_problem, still)
 
+# Voice feedback: the call made when a spoken command switches mode (greet/dance have their own).
+ACK_SOUNDS = {"follow": "chirp", "gaze": "peck", "home": "coo", "idle": "coo"}
+LOST_HINT_AFTER = 4.0    # s without a marker in follow/gaze before the duck "asks"
+LOST_HINT_REPEAT = 10.0  # s between repeated questioning calls while still lost
 MODES = ("idle", "gaze", "follow", "home", "greet", "sit", "crouch", "skill", "dance")
 POSTURE_COMMANDS = ("sit", "stand", "crouch", "pick", "roll", "kick_left", "kick_right", "dance")
 VISION_WORKER = Path(__file__).resolve().parent / "vision" / "aruco_worker.py"
@@ -109,6 +113,10 @@ class FollowApp:
         self.routine: Optional[Routine] = None
         self.return_mode = "idle"
         self.recorder = None  # sources.Recorder: every new frame is saved for --replay
+        # Audible feedback, so the host on stage knows the duck heard him and what it is doing.
+        self.mode_since = 0.0
+        self.last_target_at = -math.inf
+        self.lost_hint_at = -math.inf
         self.skill: Optional[dict] = None
         self.sit_started = -math.inf
         self.crouch_started = -math.inf
@@ -128,6 +136,27 @@ class FollowApp:
 
     # ── commands ─────────────────────────────────────────────────────────────
     def handle(self, command: str, source: str = "keyboard") -> None:
+        before = self.mode
+        self._handle(command, source)
+        if source == "voice":
+            self._acknowledge(command, before)
+
+    def _acknowledge(self, command: str, before: str) -> None:
+        """A short call when a spoken command changed what the duck does; a questioning one when not.
+
+        Greeting and dancing make their own sounds from their first keyframe, so they get none here.
+        A command that changed nothing (refused, or already in that mode) gets "inquire"."""
+        if self.mode in ("greet", "dance"):
+            return
+        if self.mode != before or self._deferred_dance > self._clock():  # a deferred dance is a yes too
+            tag = ACK_SOUNDS.get(self.mode, "chirp")
+        else:
+            tag = "inquire"
+        refused = self.guard.play(tag)
+        if refused:
+            self._log(f"回應叫聲沒播出：{refused}")
+
+    def _handle(self, command: str, source: str = "keyboard") -> None:
         if command != self._pending_confirm:
             # "press twice" means twice IN A ROW: 2 → s → 2 or 2 → f → 2 must not roll the duck
             self._pending_confirm = None
@@ -388,6 +417,9 @@ class FollowApp:
                 self.tracker.reset()
             self.last_detection_at = -math.inf
         self.mode = mode
+        self.mode_since = self._clock()
+        self.last_target_at = -math.inf
+        self.lost_hint_at = -math.inf
         if mode == "home":
             # Host says "let's go home": turn round in place, then follow the host off stage.
             if self.home_angle == 0:
@@ -622,11 +654,24 @@ class FollowApp:
             self.guard.halt()
         self.guard.set_head(list(out.head))  # frozen on loss; MotionGuard gates it on state
 
+        self._hint_if_lost(out, now)
         if out.reason != self._last_reason:
             self._log(f"[{self.mode}] {out.reason}")
             self._last_reason = out.reason
         self.last_decision = out
         return out
+
+    def _hint_if_lost(self, out: Decision, now: float) -> None:
+        """Following or watching but no marker in sight for a while: a questioning call, then again
+        every LOST_HINT_REPEAT s, so the host knows the duck is waiting for him rather than broken."""
+        if out.valid:
+            self.last_target_at = now
+            return
+        since = max(self.mode_since, self.last_target_at)
+        if now - since >= LOST_HINT_AFTER and now - self.lost_hint_at >= LOST_HINT_REPEAT:
+            self.lost_hint_at = now
+            self._log("找不到標記：叫一聲提示（標記要在鴨子正前方約 1 公尺、正對相機）")
+            self.guard.play("inquire")
 
     def run(self, rate_hz: float = 10.0, on_tick: Optional[Callable[[], None]] = None) -> None:
         period = 1.0 / rate_hz
