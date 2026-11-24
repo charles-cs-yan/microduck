@@ -7,14 +7,14 @@
     .box { fill: #121a30; stroke: #263355; stroke-width: 1.5; }
     .name { font-size: 15px; font-weight: 700; }
     .desc { fill: #93a0bd; font-size: 12.5px; }
-    .wire { stroke: #5d6a88; stroke-width: 2; fill: none; }
+    .wire { stroke: #93a0bd; stroke-linecap: round; stroke-width: 2; fill: none; }
     .pulse { stroke: #58d6e6; stroke-width: 2; stroke-dasharray: 3 9; fill: none; animation: run 1s linear infinite; }
     @keyframes run { to { stroke-dashoffset: -24; } }
     @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
   </style>
   <defs>
-    <marker id="h" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-      <path d="M0 0 L10 5 L0 10 Z" fill="#5d6a88"/>
+    <marker id="h" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M3 2 L10 6 L3 10" fill="none" stroke="#93a0bd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
 
@@ -42,12 +42,13 @@
     <text class="desc" x="38" y="251">operator backup, Enter = stop</text>
   </g>
 
-  <!-- wires into the app -->
-  <g class="wire" marker-end="url(#h)">
-    <path d="M236 84 C 258 84 258 150 280 150"/>
-    <path d="M236 160 H280"/>
-    <path d="M236 236 C 258 236 258 170 280 170"/>
+  <!-- wires into the app: three inputs merge into one trunk -->
+  <g class="wire">
+    <path d="M236 84 H248 Q260 84 260 96 V148 Q260 160 272 160"/>
+    <path d="M236 236 H248 Q260 236 260 224 V172 Q260 160 272 160"/>
+    <path d="M236 160 H279" marker-end="url(#h)"/>
   </g>
+  <circle cx="260" cy="160" r="3.5" fill="#93a0bd"/>
 
   <!-- decide -->
   <g class="sans">
@@ -58,7 +59,7 @@
     <text class="desc" x="300" y="196">turns on odometry</text>
   </g>
 
-  <path class="wire" d="M482 160 H516" marker-end="url(#h)"/>
+  <path class="wire" d="M482 160 H515" marker-end="url(#h)"/>
 
   <!-- guard -->
   <g class="sans">
@@ -74,8 +75,7 @@
     </g>
   </g>
 
-  <path class="wire" d="M728 160 H754" marker-end="url(#h)"/>
-  <path class="pulse" d="M728 160 H754"/>
+  <path class="wire" d="M728 104 H753" marker-end="url(#h)"/>
 
   <!-- robot -->
   <g class="sans">
@@ -83,7 +83,7 @@
     <text class="name mono" x="774" y="96" fill="#e8ecf6">/run/robotd.sock</text>
     <text class="desc" x="774" y="118">JSON-RPC 2.0 intents</text>
 
-    <path class="wire" d="M858 140 V170" marker-end="url(#h)"/>
+    <path class="wire" d="M858 140 V169" marker-end="url(#h)"/>
 
     <rect class="box" x="756" y="172" width="204" height="80" rx="12"/>
     <text class="name mono" x="774" y="200" fill="#e8ecf6">robotd · 50 Hz</text>

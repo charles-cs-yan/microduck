@@ -8,15 +8,15 @@
     .node-t { font-size: 16px; font-weight: 700; }
     .cap { fill: #93a0bd; font-size: 12.5px; }
     .chip-t { font-size: 13px; font-weight: 600; }
-    .arrow { stroke: #5d6a88; stroke-width: 2; fill: none; }
+    .arrow { stroke: #93a0bd; stroke-linecap: round; stroke-width: 2; fill: none; }
     .tick { stroke: #263355; stroke-width: 1.5; }
     .flow { stroke: #ffd23f; stroke-width: 2; stroke-dasharray: 4 8; fill: none; opacity: .55; animation: run 1s linear infinite; }
     @keyframes run { to { stroke-dashoffset: -24; } }
     @media (prefers-reduced-motion: reduce) { .flow { animation: none; } }
   </style>
   <defs>
-    <marker id="head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-      <path d="M0 0 L10 5 L0 10 Z" fill="#5d6a88"/>
+    <marker id="head" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto">
+      <path d="M3 2 L10 6 L3 10" fill="none" stroke="#93a0bd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
 
