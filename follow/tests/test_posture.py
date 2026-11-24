@@ -43,7 +43,7 @@ class BringUpProblemTest(unittest.TestCase):
         self.assertEqual(self.problem("protection", allow_protection=True), "")
 
     def test_battery_and_imu(self):
-        self.assertIn("電池", self.problem("held", battery={"volts": 7.5, "percent": 30}))
+        self.assertIn("電池", self.problem("held", battery={"volts": 7.4, "percent": 30}))
         self.assertIn("IMU", self.problem("held", imu={"ready": False, "consecutive_stale_blocks": 0}))
 
 
@@ -105,7 +105,7 @@ class SitTest(PostureHarness):
         self.assertEqual(self.app.mode, "idle")
 
     def test_get_up_from_sit_needs_battery(self):
-        self.fake.health["battery"] = {"volts": 7.45, "percent": 30}
+        self.fake.health["battery"] = {"volts": 7.35, "percent": 30}
         self.guard.poll_health()
         self.set_state("sit")
         self.commands.put("stand")

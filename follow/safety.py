@@ -8,7 +8,7 @@ human-readable reason (Traditional Chinese, shown to the operator).
 Project rules encoded here (CLAUDE.md):
 * forward ≤ 0.12 m/s to start, never above the 0.30 m/s operator ceiling;
 * vy is never used;
-* stop walking when the battery approaches 7.5 V (default floor 7.6 V, never below 7.5 V);
+* stop walking when the battery approaches 7.5 V (default floor 7.6 V, never below 7.4 V);
 * detection is thermally limited — refuse to move when the CPU is too hot.
 """
 
@@ -51,8 +51,8 @@ class Limits:
             raise ValueError("max_backward exceeds the operator ceiling")
         if self.max_yaw_rate > 1.0:
             raise ValueError("max_yaw_rate above 1.0 rad/s is outside this demo's envelope")
-        if self.min_battery_v < 7.5:
-            raise ValueError("min_battery_v may not be set below 7.5 V")
+        if self.min_battery_v < 7.4:
+            raise ValueError("min_battery_v may not be set below 7.4 V")
 
 
 def _finite(value: Any) -> bool:

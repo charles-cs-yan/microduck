@@ -21,8 +21,8 @@ class LimitsTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             Limits(min_battery_v=7.0)
         with self.assertRaises(ValueError):
-            Limits(min_battery_v=7.49)
-        Limits(min_battery_v=7.5)  # the vendor reference is the lowest allowed setting
+            Limits(min_battery_v=7.39)
+        Limits(min_battery_v=7.4)  # the user's floor (vendor: 7.5) is the lowest allowed setting
 
     def test_rejects_nan(self):
         with self.assertRaises(ValueError):
