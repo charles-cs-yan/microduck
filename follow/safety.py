@@ -57,8 +57,8 @@ class Limits:
             raise ValueError("max_yaw_rate above 1.0 rad/s is outside this demo's envelope")
         if self.min_battery_v < 7.2:
             raise ValueError("min_battery_v may not be set below 7.2 V")
-        if not _finite(self.hot_joint_max_c) or not self.max_motor_c <= self.hot_joint_max_c <= 75.0:
-            raise ValueError("hot_joint_max_c must be between max_motor_c and 75 °C")
+        if not _finite(self.hot_joint_max_c) or not self.max_motor_c <= self.hot_joint_max_c <= 85.0:
+            raise ValueError("hot_joint_max_c must be between max_motor_c and 85 °C")
 
 
 def motor_limit(motors: Dict[str, Any], limits: "Limits") -> float:

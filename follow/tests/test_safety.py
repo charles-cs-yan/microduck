@@ -129,6 +129,6 @@ class HotJointTest(unittest.TestCase):
         self.assertEqual(health_problem(self.health("left_hip_roll", 70.0), 0.1, L), "")
 
     def test_bounds(self):
-        for bad in (64.0, 76.0, float("nan")):
+        for bad in (64.0, 86.0, float("nan")):
             with self.assertRaises(ValueError):
                 Limits(hot_joint="left_hip_roll", hot_joint_max_c=bad)
