@@ -10,7 +10,7 @@ _Say "Let's go."_
 
 <br>
 
-[![tests](https://img.shields.io/github/actions/workflow/status/charles-cs-yan/microduck/tests.yml?branch=main&label=tests&logo=githubactions&logoColor=white)](https://github.com/charles-cs-yan/microduck/actions/workflows/tests.yml)
+[![tests](https://github.com/charles-cs-yan/microduck/actions/workflows/tests.yml/badge.svg)](https://github.com/charles-cs-yan/microduck/actions/workflows/tests.yml)
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
 ![sherpa-onnx](https://img.shields.io/badge/sherpa--onnx-keyword%20spotting-FF6F00?logo=onnx&logoColor=white)
 ![OpenCV](https://img.shields.io/badge/OpenCV-ArUco-5C3EE8?logo=opencv&logoColor=white)
@@ -83,9 +83,7 @@ Measured on the real duck and in simulation.
 
 ## Controls
 
-<table>
-<tr><th width="50%">Keyboard (letter + Enter)</th><th width="50%">Voice (English)</th></tr>
-<tr><td valign="top">
+**Keyboard** (letter + Enter)
 
 | Key | Action |
 |:---:|---|
@@ -100,7 +98,7 @@ Measured on the real duck and in simulation.
 | `s` or `Enter` | **stop** |
 | `q` | quit, the duck stays standing |
 
-</td><td valign="top">
+**Voice** (English, within a metre, facing the duck)
 
 | Phrase | Action |
 |---|---|
@@ -112,9 +110,6 @@ Measured on the real duck and in simulation.
 | "Say hello" | greet |
 | "Sit down" · "Get up" · "Lie down" | posture |
 | "Stop" | stop |
-
-</td></tr>
-</table>
 
 Do not rely on a spoken "Stop" in a noisy room. The operator keeps a hand on `Enter`.
 
@@ -152,15 +147,6 @@ restores it on any exit. It asks the operator to type `yes` before the duck may 
 
 The module is only ever a **client** of `robotd`. It sends intents over the socket and never touches motor,
 fall-protection or policy code.
-
-| Gate check | Limit |
-|---|---|
-| Battery | walking stops at 7.6 V; no stand-up at or below 7.5 V |
-| CPU temperature | below 90 °C |
-| Forward speed | 0.12 m/s by default, never sideways |
-| Robot state | under 0.5 s old, not fallen, not limp |
-| IMU and servo bus | no stuck readings, no consecutive bus errors |
-| Exit or target loss | `robot.stop` is always sent and acknowledged |
 
 ```
 follow/
