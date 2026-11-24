@@ -22,7 +22,7 @@ from typing import List, Optional, Sequence, Tuple
 
 from .posture import TILT_LIMIT, Z_RANGE
 
-SOUND_TAGS = ("alarm", "greet", "inquire", "peck", "chirp", "coo", "laugh")  # not "wheee": it needs a held stream
+SOUND_TAGS = ("alarm", "greet", "inquire", "peck", "chirp", "coo")  # the board's bank; not "wheee": it needs a held stream (no "laugh" in the bank)
 
 
 @dataclass(frozen=True)
@@ -104,7 +104,7 @@ DANCE_MAX = 30.0  # s; the dance ends itself after this even if nobody presses a
 _SWAY = 0.15
 _DIP = -0.012
 DANCE: List[Keyframe] = _merge(
-    [Keyframe(0.0, head=CENTRE, pose=NEUTRAL_POSE, sound="laugh"),
+    [Keyframe(0.0, head=CENTRE, pose=NEUTRAL_POSE, sound="greet"),
      Keyframe(0.5, head=(0.0, 0.1, -0.30, -0.15), pose=(_DIP, _SWAY, 0.0)),
      Keyframe(1.0, head=CENTRE, pose=NEUTRAL_POSE, sound="chirp"),
      Keyframe(1.5, head=(0.0, 0.1, 0.30, 0.15), pose=(_DIP, -_SWAY, 0.0)),

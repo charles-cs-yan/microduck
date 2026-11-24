@@ -2,7 +2,7 @@
 
 import unittest
 
-from follow.app import ACK_SOUNDS, LOST_HINT_AFTER, LOST_HINT_REPEAT
+from follow.app import ACK_SOUNDS, LOST_HINT_AFTER
 from follow.tests.test_posture import PostureHarness
 
 
@@ -46,21 +46,22 @@ class LostHintTest(PostureHarness):
     def hints(self):
         return [p for p in self.sent("robot.sound") if p["tag"] == "inquire"]
 
-    def test_asks_when_no_marker_then_repeats(self):
+    def test_asks_once_when_no_marker(self):
+        """Once per mode: a call every few seconds would drown out the host's next command."""
         self.commands.put("gaze")
         self.step(marker_size=None)
         for _ in range(int(LOST_HINT_AFTER / 0.1) - 3):
             self.step(marker_size=None)
         self.assertEqual(self.hints(), [], "not before the delay")
-        for _ in range(6):
+        for _ in range(300):
             self.step(marker_size=None)
         self.assertEqual(len(self.hints()), 1)
-        for _ in range(int(LOST_HINT_REPEAT / 0.1) - 10):
+        self.commands.put("stop")
+        self.step(marker_size=None)
+        self.commands.put("gaze")
+        for _ in range(int(LOST_HINT_AFTER / 0.1) + 5):
             self.step(marker_size=None)
-        self.assertEqual(len(self.hints()), 1, "not again too soon")
-        for _ in range(15):
-            self.step(marker_size=None)
-        self.assertEqual(len(self.hints()), 2)
+        self.assertEqual(len(self.hints()), 2, "a new request may ask again")
 
     def test_silent_while_the_marker_is_seen(self):
         self.commands.put("gaze")

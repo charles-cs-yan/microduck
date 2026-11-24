@@ -39,7 +39,7 @@ class DanceRoutineTest(unittest.TestCase):
         self.assertTrue(all(dones[first_done:]))
         sounds = [tag for s in samples for tag in s[3]]
         laps = math.ceil(DANCE_MAX / DANCE_LAP)
-        self.assertEqual(sounds.count("laugh"), laps, "one laugh per lap, never a burst")
+        self.assertEqual(sounds.count("greet"), laps, "one greet call per lap, never a burst")
         self.assertEqual(samples[-1][2], 0.0, "beak closed at the end")
 
     def test_smooth_sway_both_ways(self):

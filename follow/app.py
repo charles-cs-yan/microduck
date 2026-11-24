@@ -62,7 +62,7 @@ from .posture import (BUSY_POLICIES, CROUCH, SITTING_POLICIES, STANDING_POLICIES
 # Voice feedback: the call made when a spoken command switches mode (greet/dance have their own).
 ACK_SOUNDS = {"follow": "chirp", "gaze": "peck", "home": "coo", "idle": "coo"}
 LOST_HINT_AFTER = 4.0    # s without a marker in follow/gaze before the duck "asks"
-LOST_HINT_REPEAT = 10.0  # s between repeated questioning calls while still lost
+LOST_HINT_REPEAT = math.inf  # once per mode: repeated calls drown out the host's next command
 MODES = ("idle", "gaze", "follow", "home", "greet", "sit", "crouch", "skill", "dance")
 POSTURE_COMMANDS = ("sit", "stand", "crouch", "pick", "roll", "kick_left", "kick_right", "dance")
 VISION_WORKER = Path(__file__).resolve().parent / "vision" / "aruco_worker.py"
