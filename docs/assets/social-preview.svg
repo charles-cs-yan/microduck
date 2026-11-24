@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1280 640" width="1280" height="640">
+  <defs>
+    <radialGradient id="glow" cx="78%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#18223d"/><stop offset="1" stop-color="#0b1020"/>
+    </radialGradient>
+    <symbol id="duck" viewBox="56 28 152 158">
+      <ellipse cx="122" cy="178" rx="50" ry="5" fill="#263355"/>
+      <rect x="105" y="150" width="7" height="22" rx="3.5" fill="#ff8a3d"/>
+      <ellipse cx="113" cy="174" rx="12" ry="5" fill="#ff8a3d"/>
+      <rect x="129" y="150" width="7" height="22" rx="3.5" fill="#ff8a3d"/>
+      <ellipse cx="137" cy="174" rx="12" ry="5" fill="#ff8a3d"/>
+      <path d="M76 122 Q60 108 66 92 Q78 104 88 110 Z" fill="#ffd23f"/>
+      <ellipse cx="118" cy="132" rx="46" ry="32" fill="#ffd23f"/>
+      <ellipse cx="128" cy="142" rx="28" ry="17" fill="#ffe68a"/>
+      <ellipse cx="106" cy="130" rx="21" ry="13" transform="rotate(-14 106 130)" fill="#f0b400"/>
+      <circle cx="154" cy="84" r="34" fill="#ffd23f"/>
+      <path d="M148 52 Q140 38 150 32 Q150 42 156 46 Q158 34 170 34 Q160 42 162 52 Z" fill="#ffd23f"/>
+      <path d="M182 80 Q200 80 204 88 Q194 94 182 92 Z" fill="#ff8a3d"/>
+      <path d="M182 93 Q196 94 199 98 Q190 102 182 99 Z" fill="#ff8a3d" opacity=".85"/>
+      <ellipse cx="164" cy="98" rx="8" ry="5" fill="#ff8fa3" opacity=".75"/>
+      <ellipse cx="166" cy="78" rx="5.5" ry="7" fill="#1a1400"/>
+      <circle cx="168" cy="75" r="2.2" fill="#fff"/>
+      <circle cx="164.5" cy="82" r="1" fill="#fff"/>
+    </symbol>
+  </defs>
+  <rect width="1280" height="640" fill="url(#glow)"/>
+  <text x="90" y="150" fill="#58d6e6" font-family="Consolas, 'Cascadia Mono', monospace" font-size="24" letter-spacing="4">MHDUCK BIPED · RADXA ZERO 3W</text>
+  <text x="84" y="270" fill="#e8ecf6" font-family="'Segoe UI', system-ui, sans-serif" font-weight="800" font-size="120" letter-spacing="-2">MICRODUCK</text>
+  <text x="90" y="340" fill="#93a0bd" font-family="'Segoe UI', system-ui, sans-serif" font-size="34">Say "Let's go." It follows you on stage,</text>
+  <text x="90" y="388" fill="#93a0bd" font-family="'Segoe UI', system-ui, sans-serif" font-size="34">dances, and walks you home.</text>
+  <g font-family="Consolas, 'Cascadia Mono', monospace" font-size="22" font-weight="700">
+    <rect x="90" y="450" width="196" height="48" rx="24" fill="none" stroke="#ffd23f" stroke-width="2"/>
+    <text x="188" y="481" fill="#ffd23f" text-anchor="middle">ACT 1 FOLLOW</text>
+    <rect x="304" y="450" width="186" height="48" rx="24" fill="none" stroke="#ffd23f" stroke-width="2"/>
+    <text x="397" y="481" fill="#ffd23f" text-anchor="middle">ACT 2 DANCE</text>
+    <rect x="508" y="450" width="208" height="48" rx="24" fill="none" stroke="#ffd23f" stroke-width="2"/>
+    <text x="612" y="481" fill="#ffd23f" text-anchor="middle">ACT 3 GO HOME</text>
+  </g>
+  <text x="90" y="570" fill="#5d6a88" font-family="Consolas, 'Cascadia Mono', monospace" font-size="22">github.com/charles-cs-yan/microduck</text>
+  <path d="M1105 250 L1162 226" stroke="#58d6e6" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 12"/>
+  <g transform="translate(1160 190)">
+    <rect width="64" height="64" rx="4" fill="#e8ecf6"/>
+    <rect x="10" y="10" width="17" height="17" fill="#0b1020"/><rect x="37" y="10" width="17" height="10" fill="#0b1020"/>
+    <rect x="22" y="30" width="20" height="14" fill="#0b1020"/><rect x="10" y="44" width="10" height="10" fill="#0b1020"/>
+    <rect x="37" y="42" width="17" height="12" fill="#0b1020"/>
+  </g>
+  <use href="#duck" xlink:href="#duck" x="790" y="170" width="350" height="364"/>
+</svg>
