@@ -21,6 +21,12 @@ _Say "Let's go."_
 
 <br>
 
+<div align="center">
+  <img src="docs/assets/banner.svg" alt="Act 1 follow, Act 2 dance, Act 3 go home" width="100%">
+</div>
+
+<br>
+
 ## What this is
 
 A Python module for the [MHDuck Microduck](https://github.com/MHDuck/microduck), a 14-joint biped robot duck
