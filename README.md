@@ -30,9 +30,9 @@ _Say "Let's go."_
 ## What this is
 
 A Python module for the [MHDuck Microduck](https://github.com/MHDuck/microduck), a 14-joint biped robot duck
-running on a Radxa Zero 3W. It listens for a few English phrases, tracks an ArUco marker on the host's
-clothes, and walks the duck through a three-act stage routine. Recognition and control both run on the duck,
-so the show does not depend on the venue's Wi-Fi.
+running on a Radxa Zero 3W. It listens for a few English phrases and walks the duck through a three-act stage
+routine: on stage, a dance, and off stage. The duck's own microphone feeds a speech recogniser on the
+operator's laptop; control runs on the duck and never bypasses the safety gate.
 
 What sets it apart is the safety gate: every motion request passes through checks on battery, temperature,
 IMU and servo health, and the module stops the duck whenever it loses its target or exits.
@@ -46,9 +46,9 @@ IMU and servo health, and the module stops the duck whenever it loses its target
 
 | Act | The host says | The duck does | Backup key |
 |:---:|---|---|:---:|
-| 1 | **"Let's go, follow me!"** | Follows the host on stage, eyes on the marker | `f` |
+| 1 | **"Let's go!"** | Walks straight 2 m on stage | `f` |
 | 2 | **"Let's party!"** | Dances on the spot: sway, nod, chatter, chirp, up to 30 s | `d` |
-| 3 | **"Let's go home"** | Turns 180° and follows the host off stage | `h` |
+| 3 | **"Let's go home"** | Turns 180° and walks straight 2 m off stage | `h` |
 
 <div align="center">
   <img src="docs/assets/show-flow.svg" alt="Show flow: idle, then follow on Let's go, idle when the host stops, dance on Let's party, home on Let's go home, follow once turned 180 degrees, idle on key s" width="100%">
@@ -60,8 +60,11 @@ straight back. Speech is recognised on the operator's laptop from the duck's mic
 keyword spotter missed too much natural speech). One command starts both:
 `powershell -File follow\start_show.ps1`. Marker following remains available with `-Camera`.
 
-"Let's go" depends on context: from standby it means follow, after a dance it means go home. A clipped
-"Let's go home" therefore still does the right thing.
+"Let's go" depends on context: before the duck is on stage it means walk on, once it is on stage it means
+go home. A clipped "Let's go home" therefore still does the right thing.
+
+The matcher also tolerates near-misses: "lass party", "say hallo" and "folow me" still land, while three
+minutes of the host's real interview speech triggered nothing.
 
 <br>
 
@@ -74,8 +77,8 @@ Measured on the real duck and in simulation.
 >
 > The tracker walks in pulses and stops to look, so the simulated average is about **0.07 m/s**.
 >
-> The same on-duck recording was missed by a zh-en model and caught by the English GigaSpeech model. The
-> model mattered more than the microphone.
+> On the same 16 guided recordings, keyword spotting on the duck caught 7 (GigaSpeech) and 4 (zh-en); a
+> streaming recogniser on the laptop caught all 16. The model mattered more than the microphone.
 
 | Finding | Detail |
 |---|---|
@@ -83,7 +86,8 @@ Measured on the real duck and in simulation.
 | `robot.stop` does not cancel a skill | The app watches the policy `robotd` reports instead of its own mode. |
 | `robot.pose` has no deadman | Velocity intents time out after 500 ms; poses do not, so a pose is always released explicitly. |
 | Heat | Standing still with the media daemon running already reads 84–85 °C, against a 90 °C gate. |
-| Battery | The charger has so far topped out at 7.77 V of a nominal 8.4 V. |
+| Battery | The charger has so far topped out at 7.9 V of a nominal 8.4 V. Walking stops at 7.0 V. |
+| Sit to stand | The fall detector re-arms the instant a rise ends, so a wobble can read as a fall and the legs go limp for a moment. |
 
 <br>
 
@@ -98,18 +102,19 @@ Measured on the real duck and in simulation.
 | `d` | dance |
 | `w` | greet |
 | `h` | go home |
+| `k` | walk straight 2 m |
 | `x` `u` `p` | sit, stand up, crouch |
 | `1` | pick something up |
 | `2` `3` `4` | roll, kick left, kick right (press twice) |
 | `s` or `Enter` | **stop** |
 | `q` | quit, the duck stays standing |
 
-**Voice** (English, within a metre, facing the duck)
+**Voice** (English, within a metre of the duck)
 
 | Phrase | Action |
 |---|---|
-| "Let's go" | follow, or go home after a dance |
-| "Follow me" | follow |
+| "Let's go" | walk on stage, or go home once on stage |
+| "Follow me" | walk on stage |
 | "Let's go home" · "Go home" | go home |
 | "Let's party" · "Shake it" | dance |
 | "Look at me" | gaze |
@@ -124,7 +129,7 @@ Do not rely on a spoken "Stop" in a noisy room. The operator keeps a hand on `En
 ## Quick start
 
 ```bash
-python3 -m unittest discover -s follow/tests -t .   # 278 offline tests, no robot needed
+python3 -m unittest discover -s follow/tests -t .   # 306 offline tests, no robot needed
 ```
 
 The tests talk to a fake `robotd` over socket pairs. Tests that need OpenCV or sherpa-onnx skip themselves
@@ -137,11 +142,18 @@ bash follow/deploy.sh radxa@<duck-ip>   # copy to ~/microduck-follow and run the
 python3 -m follow.probe                 # read-only: would the gate allow motion right now?
 python3 -m follow.app                   # dry run: prints decisions, moves nothing
 python3 -m follow.stand                 # bring the duck up from "held" (asks for "yes")
-bash follow/show.sh                     # show day: camera + voice + live motion
+bash follow/show.sh --scripted          # live motion, straight-line show, keyboard
 ```
 
-`show.sh` asks for the sudo password once, stops the media daemon so it can read the camera directly, and
-restores it on any exit. It asks the operator to type `yes` before the duck may move.
+On show day, from the operator's laptop (Windows, recogniser in WSL):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File follow\start_show.ps1   # options: -WalkM 1.5, -NoEars, -Camera
+```
+
+It opens a "DUCK EARS" window for speech, which waits for the show and reconnects on its own, and runs
+`show.sh --scripted` on the duck. The operator types `yes` before the duck may move. `-Camera` brings back
+the marker-following show, which stops the media daemon and needs sudo.
 
 <br>
 
@@ -164,10 +176,11 @@ follow/
 ├─ greet.py          keyframed routines: greeting and dance
 ├─ posture.py        sit, stand, crouch, skills
 ├─ robotd_client.py  JSON-RPC client for /run/robotd.sock
-├─ voice/            keyword lists, listener, model fetch, mic check
+├─ voice/            laptop recogniser bridge, intent matching, recording and scoring tools
 ├─ vision/           ArUco worker, camera check, auto-exposure, browser relay
-├─ show.sh           one-command show launcher
-└─ tests/            278 tests, a full-show rehearsal, a step-by-step diff against upstream
+├─ show.sh           show launcher on the duck
+├─ start_show.ps1    one-command show launcher on the laptop
+└─ tests/            306 tests, a full-show rehearsal, a step-by-step diff against upstream
 ```
 
 <details>
@@ -194,10 +207,13 @@ Most documents are in Traditional Chinese.
 - [x] `robotd` client, safety gate, read-only probe
 - [x] Tracker, odometry turns, greeting, dance, posture and skills
 - [x] English keyword spotting and a synthetic noise test
+- [x] Laptop speech recognition from the duck's microphone, fuzzy phrase matching
 - [x] First stand-up, walk and sit on the real duck
-- [ ] Head-only gaze and a first live follow
-- [ ] Dance stability on the real duck
-- [ ] Voice test with the real host, on the duck
+- [x] Voice-triggered greet and dance on the real duck
+- [x] Scripted straight-line show, no camera
+- [ ] Straight walk and 180° turn measured on the real duck
+- [ ] Steadier sit-to-stand
+- [ ] Rehearsal with the host on 2026-11-26
 - [ ] Ten-minute thermal run with camera and voice
 - [ ] Full dress rehearsal, then show day on 2026-12-03
 
