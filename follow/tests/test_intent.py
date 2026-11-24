@@ -17,7 +17,7 @@ class IntentTest(unittest.TestCase):
             "Let's go follow me": "follow", "follow me": "follow",
             "say hello": "greet", "Look at me": "gaze", "Stop": "stop", "Let's go": "letsgo",
             "Last body": "dance", "last party": "dance", "top": "stop",
-            "sit down": "sit", "set down": "sit", "get up": "stand", "stand up": "stand",
+            "sit down": "sit", "set down": "sit", "Say down": "sit", "get up": "stand", "stand up": "stand",
             "lie down": "crouch", "lay down": "crouch", "follow me": "follow", "go home": "home",
         }
         for text, label in cases.items():
