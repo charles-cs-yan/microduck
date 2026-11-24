@@ -107,3 +107,28 @@ class HealthGateTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HotJointTest(unittest.TestCase):
+    """--hot-joint: one servo whose reading runs high gets its own limit; the rest stay at 65 °C."""
+
+    def health(self, hottest, c):
+        return healthy_health(motors={"hottest": hottest, "max_c": c, "mean_c": 40.0})
+
+    def test_off_by_default(self):
+        from follow.safety import hard_problem
+        self.assertIn("過熱", hard_problem(None, self.health("left_hip_roll", 70.0), Limits()))
+
+    def test_only_the_named_joint_is_relaxed(self):
+        from follow.safety import hard_problem
+        L = Limits(hot_joint="left_hip_roll", hot_joint_max_c=75.0)
+        self.assertEqual(hard_problem(None, self.health("left_hip_roll", 70.0), L), "")
+        self.assertIn("過熱", hard_problem(None, self.health("left_hip_roll", 75.0), L))
+        self.assertIn("過熱", hard_problem(None, self.health("right_knee", 66.0), L))
+        self.assertIn("超過", health_problem(self.health("right_knee", 66.0), 0.1, L))
+        self.assertEqual(health_problem(self.health("left_hip_roll", 70.0), 0.1, L), "")
+
+    def test_bounds(self):
+        for bad in (64.0, 76.0, float("nan")):
+            with self.assertRaises(ValueError):
+                Limits(hot_joint="left_hip_roll", hot_joint_max_c=bad)

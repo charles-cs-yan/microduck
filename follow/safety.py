@@ -33,6 +33,10 @@ class Limits:
     min_battery_v: float = 7.6
     max_cpu_c: float = 90.0        # °C; full-speed detection reaches ~95 °C and throttles to 408 MHz
     max_motor_c: float = 65.0      # °C, hottest servo case
+    # One servo whose temperature reading is known to run high (left_hip_roll after the 11/24
+    # fall read ~15 °C hotter than it felt) may get its own, higher limit. Off by default.
+    hot_joint: str = ""
+    hot_joint_max_c: float = 65.0
     max_imu_stale_run: int = 5     # consecutive repeated IMU blocks (robotd itself calls 25 "frozen")
     max_bus_errors: int = 0        # consecutive servo-bus read errors tolerated
     max_state_age: float = 0.5     # s since the last robot.state push
@@ -53,6 +57,15 @@ class Limits:
             raise ValueError("max_yaw_rate above 1.0 rad/s is outside this demo's envelope")
         if self.min_battery_v < 7.4:
             raise ValueError("min_battery_v may not be set below 7.4 V")
+        if not _finite(self.hot_joint_max_c) or not self.max_motor_c <= self.hot_joint_max_c <= 75.0:
+            raise ValueError("hot_joint_max_c must be between max_motor_c and 75 °C")
+
+
+def motor_limit(motors: Dict[str, Any], limits: "Limits") -> float:
+    """The limit for the hottest servo: its own when it is the named hot joint, else max_motor_c."""
+    if limits.hot_joint and motors.get("hottest") == limits.hot_joint:
+        return limits.hot_joint_max_c
+    return limits.max_motor_c
 
 
 def _finite(value: Any) -> bool:
@@ -125,8 +138,8 @@ def health_problem(health: Optional[Dict[str, Any]], age: Optional[float], limit
     if _finite(cpu) and cpu >= limits.max_cpu_c:
         return f"CPU {cpu:.0f} °C，超過 {limits.max_cpu_c:.0f} °C"
     motors = health.get("motors")
-    if isinstance(motors, dict) and _finite(motors.get("max_c")) and motors["max_c"] >= limits.max_motor_c:
-        return f"馬達 {motors.get('hottest', '?')} {motors['max_c']:.0f} °C，超過 {limits.max_motor_c:.0f} °C"
+    if isinstance(motors, dict) and _finite(motors.get("max_c")) and motors["max_c"] >= motor_limit(motors, limits):
+        return f"馬達 {motors.get('hottest', '?')} {motors['max_c']:.0f} °C，超過 {motor_limit(motors, limits):.0f} °C"
     return ""
 
 
@@ -176,8 +189,8 @@ def hard_problem(state: Optional[Dict[str, Any]], health: Optional[Dict[str, Any
         if _finite(cpu) and cpu >= limits.max_cpu_c:
             return f"CPU {cpu:.0f} °C 過熱"
         motors = health.get("motors")
-        if isinstance(motors, dict) and _finite(motors.get("max_c")) and motors["max_c"] >= limits.max_motor_c:
-            return f"馬達 {motors['max_c']:.0f} °C 過熱"
+        if isinstance(motors, dict) and _finite(motors.get("max_c")) and motors["max_c"] >= motor_limit(motors, limits):
+            return f"馬達 {motors.get('hottest', '?')} {motors['max_c']:.0f} °C 過熱"
     if walking and battery_low:
         return battery_low
     return ""

@@ -738,6 +738,9 @@ def main(argv=None) -> int:
     parser.add_argument("--target-id", type=int, default=0, help="ArUco marker id to follow")
     parser.add_argument("--forward", type=float, default=0.12,
                         help="pulse speed and cap, m/s (pulses ask for at most 0.25; the guard caps at ≤ 0.30)")
+    parser.add_argument("--hot-joint", metavar="NAME:C",
+                        help="one servo whose temperature reads high gets its own limit, e.g. "
+                             "left_hip_roll:75 (others stay at 65 °C; at most 75)")
     parser.add_argument("--home-turn", type=float, default=180.0, metavar="DEG",
                         help="'home' first turns this many degrees in place (+ = left); 0 = no fixed "
                              "turn, just follow the host (the align turn faces them)")
@@ -770,7 +773,16 @@ def main(argv=None) -> int:
     if args.live and not live_source:
         print("--live 需要 --camera 或 --relay：不是這台鴨子即時相機的偵測結果，不能拿來驅動它。", file=sys.stderr)
         return 2
-    limits = Limits(max_forward=args.forward)
+    hot_joint, hot_max = "", 65.0
+    if args.hot_joint:
+        try:
+            hot_joint, hot_max = args.hot_joint.split(":")[0], float(args.hot_joint.split(":")[1])
+            Limits(hot_joint=hot_joint, hot_joint_max_c=hot_max)
+        except (IndexError, ValueError) as error:
+            parser.error(f"--hot-joint {args.hot_joint!r}：{error}（格式 名稱:溫度，溫度 65..75）")
+    limits = Limits(max_forward=args.forward, hot_joint=hot_joint, hot_joint_max_c=hot_max)
+    if hot_joint:
+        print(f"⚠ {hot_joint} 的溫度上限放寬到 {hot_max:g} °C（其他馬達仍是 {limits.max_motor_c:g} °C）")
     dry_run = not args.live
 
     # Signals first, so SIGTERM/SIGHUP at any later point still runs the finally below.
