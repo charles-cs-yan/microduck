@@ -711,8 +711,9 @@ def main(argv=None) -> int:
     parser.add_argument("--speech-dir", type=Path, default=Path.home() / "microduck-speech" / "current")
     parser.add_argument("--mic", default="hw:microducki2s3,0", help="ALSA input device for --voice (native hw node)")
     parser.add_argument("--mic-gain", type=float, default=20.0, help="digital gain for the microphone (speech ≈ -45 dBFS)")
-    parser.add_argument("--kws-model", default="gigaspeech", choices=("gigaspeech", "zh-en"),
-                        help="keyword model: English GigaSpeech (default; works on the duck's mic) or upstream zh-en")
+    parser.add_argument("--kws-model", default="zh-en", choices=("gigaspeech", "zh-en"),
+                        help="keyword model: upstream zh-en (default; it hears Taiwanese-accented English, "
+                             "measured 2026-11-24 on the duck's mic) or English GigaSpeech (native accents only)")
     parser.add_argument("--kws-threshold", type=float, default=0.35,
                         help="keyword threshold 0.1..0.6: lower hears more in noise, and mishears more")
     parser.add_argument("--record", metavar="JSONL", help="save every detection, replayable with --replay")
