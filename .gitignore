@@ -1,0 +1,12 @@
+# upstream clone (github.com/MHDuck/microduck) — its own repository
+/microduck/
+# vendor-supplied documents — not ours to publish
+/docs/vendor-docs/
+# internal working notes: contain network and device details
+/HANDOVER.md
+/LOCAL.md
+__pycache__/
+*.pyc
+*.log
+*.jsonl
+.claude/

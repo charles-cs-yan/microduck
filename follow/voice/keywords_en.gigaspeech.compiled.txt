@@ -1,0 +1,12 @@
+▁F O LL OW ▁ME @follow
+▁LET S ▁GO ▁HOME @home
+▁GO ▁HOME @home
+▁ST O P @stop
+▁LOOK ▁AT ▁ME @gaze
+▁SAY ▁HE LL O @greet
+▁S IT ▁DOWN @sit
+▁GET ▁UP @stand
+▁LI E ▁DOWN @crouch
+▁LET S ▁PART Y @dance
+▁SHA KE ▁IT @dance
+▁LET S ▁GO @letsgo

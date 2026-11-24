@@ -1,0 +1,12 @@
+F AA1 L OW0 M IY1 @follow
+L EH1 T S G OW1 HH OW1 M @home
+G OW1 HH OW1 M @home
+S T AA1 P @stop
+L UH1 K AE1 T M IY1 @gaze
+S EY1 HH AH0 L OW1 @greet
+S IH1 T D AW1 N @sit
+G EH1 T AH1 P @stand
+L AY1 D AW1 N @crouch
+L EH1 T S P AA1 R T IY0 @dance
+SH EY1 K IH1 T @dance
+L EH1 T S G OW1 @letsgo

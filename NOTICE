@@ -1,0 +1,10 @@
+Microduck follow module
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Parts of follow/ are Python ports of, or are written against, code from the
+upstream Microduck project (https://github.com/MHDuck/microduck, Apache-2.0):
+  - follow/tracker.py and follow/safety.py: ported from vision_follow (core.js)
+  - follow/vision/exposure.py: ported from mediad's auto-exposure
+  - follow/robotd_client.py, follow/posture.py: written against the robotd
+    JSON-RPC protocol (duck-ipc-proto), upstream rev a9be46e
+The upstream sources are not included in this repository.
