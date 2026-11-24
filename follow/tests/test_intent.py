@@ -10,7 +10,7 @@ from intent import intent_of  # noqa: E402
 
 class IntentTest(unittest.TestCase):
     def test_what_the_recogniser_heard_on_the_duck(self):
-        # Real transcripts of a Taiwanese-accented speaker, 2026-11-24 (voice_eval on the duck's mic).
+        # Real transcripts from the duck's mic, 2026-11-24 (voice_eval on a guided recording).
         cases = {
             "less party": "dance", "Let's party": "dance", "shake it": "dance",
             "Last go home": "home", "Let's go home": "home",

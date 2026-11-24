@@ -3,7 +3,7 @@
     python asr_bridge.py --duck radxa@192.168.50.237 --model ~/mdev/asr/sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06
 
 The duck's CPU is too slow (and throttles when hot) for a full recogniser, and its small keyword
-spotters miss Taiwanese-accented English. So the duck only streams raw audio (arecord over SSH,
+spotters miss too much of real, natural speech. So the duck only streams raw audio (arecord over SSH,
 ~128 kB/s) and the laptop runs a streaming zipformer ASR; follow/voice/intent.py maps what was
 said to a command label, which goes back over a second SSH into the app's --command-pipe.
 
