@@ -34,6 +34,11 @@ PHRASES = [
     ("greet", "Say hello"),
     ("gaze", "Look at me"),
     ("stop", "Stop"),
+    ("follow", "Follow me"),
+    ("home", "Go home"),
+    ("sit", "Sit down"),
+    ("stand", "Get up"),
+    ("crouch", "Lie down"),
     ("none", "(something else: e.g. 'Thank you everyone, welcome to the show')"),
 ]
 
@@ -45,11 +50,18 @@ def main(argv=None) -> int:
     parser.add_argument("--gap", type=float, default=4.0, help="seconds per prompt")
     parser.add_argument("--speaker", default="speaker", help="name for the folder, e.g. boss")
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--only", help="comma-separated labels to record, e.g. sit,stand,crouch")
     args = parser.parse_args(argv)
     if not 1 <= args.takes <= 20 or not 2.5 <= args.gap <= 10:
         parser.error("--takes 1..20, --gap 2.5..10")
 
-    order = [p for p in PHRASES for _ in range(args.takes)]
+    phrases = PHRASES
+    if args.only:
+        wanted = {w.strip() for w in args.only.split(",")}
+        phrases = [p for p in PHRASES if p[0] in wanted or p[1] in wanted]
+        if not phrases:
+            parser.error(f"--only {args.only!r} 沒有對到任何句子")
+    order = [p for p in phrases for _ in range(args.takes)]
     random.Random(args.seed).shuffle(order)  # mixed order, like a real show, not five in a row
     out = FOLLOW_HOME / "voice-sessions" / f"{args.speaker}-{time.strftime('%m%d-%H%M%S')}"
     out.mkdir(parents=True, exist_ok=True)

@@ -18,6 +18,9 @@ RULES = (
     ("follow", (r"\bfollow", r"\bfollo\b")),
     ("greet", (r"\bhello\b", r"\bhallo\b", r"\bhelo\b")),
     ("gaze", (r"\blook (at )?me\b", r"\blooking at me\b")),
+    ("sit", (r"\b(sit|set|sat|seat) (down|done|town)\b",)),
+    ("stand", (r"\b(get|got|gets|gate) up\b", r"\bstand up\b")),
+    ("crouch", (r"\b(lie|lay|lied|lying|laid|light|life) (down|done|town)\b",)),
     ("stop", (r"\bstop\b", r"\bstopp?ed\b", r"^ (top|stab|stup) $")),  # "top": the S swallowed, said alone
     ("letsgo", (r"\blet'?s go\b", r"\blets go\b", r"\blet go\b")),
 )
