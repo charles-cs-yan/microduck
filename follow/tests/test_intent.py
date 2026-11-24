@@ -35,5 +35,20 @@ class IntentTest(unittest.TestCase):
         self.assertEqual(intent_of("let's go, follow me"), "follow")
 
 
+class FuzzyTest(unittest.TestCase):
+    def test_bent_spellings_still_land(self):
+        for text, label in {"lass party": "dance", "say hallo": "greet", "folow me": "follow",
+                            "look add me": "gaze", "sit dawn": "sit", "lye down": "crouch"}.items():
+            self.assertEqual(intent_of(text), label, text)
+
+    def test_the_boss_interviews_trigger_nothing(self):
+        # Recogniser output of ~3 min of the host's real interview speech (2026-11-25).
+        for text in ("slow motion base if I look at it the paper", "Jensen took it away, everything become so fast.",
+                     "one step at a time when you go to the top and you see the entire mountain, right?",
+                     "and learn how to ask questions", "Well, thank you so much. I think that is very sage advice",
+                     "you need that extra expertise, you need that extra help Exactly."):
+            self.assertIsNone(intent_of(text), text)
+
+
 if __name__ == "__main__":
     unittest.main()

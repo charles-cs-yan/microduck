@@ -72,32 +72,39 @@ def main(argv=None) -> int:
         ssh += ["-o", o]
     rec = recogniser(a.model.expanduser(), a.threads)
     print("模型載入完成", flush=True)
+    last_fired = {}
+    try:
+        while True:  # reconnect whenever the duck, the show or the network drops out
+            outcome = listen(a, ssh, rec, last_fired)
+            print(f"  …{outcome}；3 秒後重新連線（Ctrl-C 結束）", flush=True)
+            time.sleep(3)
+    except KeyboardInterrupt:
+        print("\n結束。")
+        return 0
 
+
+def listen(a, ssh, rec, last_fired) -> str:
+    """One connection: stream the mic, send labels. Returns why it ended."""
+    # The command writer waits (up to 10 min) for the show to create its pipe, then `cat` blocks
+    # until the app opens it for reading — so the bridge may be started before or after the show.
+    wait_pipe = (f"for i in $(seq 300); do test -p {a.pipe} && pgrep -f -- '--command-pipe {a.pipe}' >/dev/null "
+                 f"&& break; sleep 2; done; test -p {a.pipe} || exit 3; exec cat > {a.pipe}")
+    sender = subprocess.Popen(ssh + [a.duck, wait_pipe], stdin=subprocess.PIPE, text=True)
     audio = subprocess.Popen(ssh + [a.duck, f"exec arecord -q -D {a.mic} -t raw -f S32_LE -c 2 -r {RATE}"],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # Writer for the app's pipe; `cat` blocks until the app opens the FIFO for reading.
-    sender = subprocess.Popen(ssh + [a.duck, f"test -p {a.pipe} || {{ echo 'no pipe {a.pipe}: start the show first' >&2; exit 3; }}; exec cat > {a.pipe}"],
-                              stdin=subprocess.PIPE, text=True)
-    time.sleep(1.5)
-    if audio.poll() is not None:
-        print("✗ 收不到鴨子的麥克風：" + audio.stderr.read().decode(errors="replace").strip(), flush=True)
-        print("  （show 要用 --no-voice 啟動，麥克風才不會被鴨子自己的語音程式佔住）")
-        return 1
-    if sender.poll() is not None:
-        print("✗ 送不了指令：先用 --command-pipe 啟動 show", flush=True)
-        return 1
-    print("🎤 在聽了（Ctrl-C 結束）", flush=True)
-
-    stream = rec.create_stream()
-    fired_this_utterance = set()
-    last_fired = {}
-    chunk_bytes = FRAME * 2 * 4
     try:
+        time.sleep(1.5)
+        if audio.poll() is not None:
+            err = audio.stderr.read().decode(errors="replace").strip()
+            return f"收不到鴨子的麥克風（{err or '連不上'}；show 要用 --no-voice，麥克風才空著）"
+        print("🎤 在聽了（show 還沒開也沒關係，開了就會接上）", flush=True)
+        stream = rec.create_stream()
+        fired_this_utterance = set()
+        chunk_bytes = FRAME * 2 * 4
         while True:
             raw = audio.stdout.read(chunk_bytes)
             if not raw or len(raw) < chunk_bytes:
-                print("✗ 麥克風串流中斷（網路或鴨子）", flush=True)
-                return 2
+                return "麥克風串流中斷（網路或鴨子）"
             x = np.frombuffer(raw, "<i4").astype(np.float32).reshape(-1, 2)[:, 0] / 2 ** 31
             stream.accept_waveform(RATE, np.clip(x * a.gain, -1, 1))
             while rec.is_ready(stream):
@@ -109,8 +116,14 @@ def main(argv=None) -> int:
             endpoint = rec.is_endpoint(stream)
             if label and label not in fired_this_utterance and (label != "letsgo" or endpoint):
                 if time.monotonic() - last_fired.get(label, -1e9) >= a.cooldown:
-                    sender.stdin.write(label + "\n")
-                    sender.stdin.flush()
+                    if sender.poll() is not None:
+                        print(f"  ✗ 聽到 {text!r} → {label}，但 show 沒在跑，指令沒送出", flush=True)
+                        return "show 結束了"
+                    try:
+                        sender.stdin.write(label + "\n")
+                        sender.stdin.flush()
+                    except (BrokenPipeError, OSError):
+                        return "送指令的連線斷了"
                     last_fired[label] = time.monotonic()
                     print(f"  ✓ {text!r} → {label}", flush=True)
                 fired_this_utterance.add(label)
@@ -119,9 +132,6 @@ def main(argv=None) -> int:
                     print(f"  · {text!r}（不是指令）", flush=True)
                 rec.reset(stream)
                 fired_this_utterance.clear()
-    except KeyboardInterrupt:
-        print("\n結束。")
-        return 0
     finally:
         for p in (audio, sender):
             if p.poll() is None:

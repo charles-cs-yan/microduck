@@ -1,5 +1,6 @@
 """`k`: walk straight ahead a fixed distance by odometry, with a timeout backstop."""
 
+import math
 import unittest
 
 from follow.app import STRAIGHT_DISTANCE, STRAIGHT_TIMEOUT
@@ -20,7 +21,8 @@ class StraightWalkTest(PostureHarness):
         from follow.tests.test_app import wait_for
         pos = getattr(self, "pos", [0.0, 0.0])
         self.fake.push("robot.state", standing_state(
-            policy=self.policy, odom={"position": [pos[0], pos[1], 0.12], "yaw": 0.0}))
+            policy=self.policy, odom={"position": [pos[0], pos[1], 0.12],
+                                      "yaw": math.atan2(math.sin(getattr(self, "yaw", 0.0)), math.cos(getattr(self, "yaw", 0.0)))}))
         self.assertTrue(wait_for(lambda: self.fake.client.state_at == self.clock.now
                                  and self.fake.client.state.get("policy") == self.policy))
 

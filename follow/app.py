@@ -93,7 +93,7 @@ class FollowApp:
                  tracker: Optional[Tracker] = None, cycle: Optional[FollowCycle] = None,
                  video_timeout: float = 10.0, stall_seconds: float = 0.4, moving_frame_timeout: float = 1.5,
                  turn_options: TurnOptions = TurnOptions(), align_threshold: float = 0.30,
-                 home_angle: float = math.pi,
+                 home_angle: float = math.pi, scripted: bool = False, walk_m: float = STRAIGHT_DISTANCE,
                  clock: Callable[[], float] = time.monotonic, log: Callable[[str], None] = print):
         if not 0.15 <= align_threshold <= 0.6:
             raise ValueError("align_threshold 必須在 0.15..0.6 rad（頭部 yaw 上限是 0.6）")
@@ -113,7 +113,12 @@ class FollowApp:
         self.turn_options = turn_options
         self.align_threshold = align_threshold
         self.home_angle = home_angle
-        self.straight_distance = STRAIGHT_DISTANCE
+        # Scripted show (no camera): "follow" walks straight walk_m metres; "home" turns, then walks
+        # straight back. on_stage remembers which of the two "Let's go" means.
+        self.scripted = scripted
+        self.on_stage = False
+        self.going_home = False
+        self.straight_distance = walk_m
         self.straight_timeout = STRAIGHT_TIMEOUT
         self.straight_from = (None, None, 0.0)
         self.turn: Optional[Turn] = None
@@ -170,6 +175,11 @@ class FollowApp:
             # "press twice" means twice IN A ROW: 2 → s → 2 or 2 → f → 2 must not roll the duck
             self._pending_confirm = None
         self._deferred_dance = -math.inf  # any newer command wins over a dance still waiting to start
+        if self.scripted and command == "letsgo":
+            # No camera to read the stage from: "Let's go" means out when off stage, back when on it.
+            command = "home" if self.on_stage else "follow"
+        if self.scripted and command == "follow":
+            command = "straight"
         if command == "letsgo":
             # "LET'S GO" is a prefix of "LET'S GO HOME" (the model reports the longer phrase when it
             # hears it, but a clipped "home" leaves just this). So it means: off stage → come with me;
@@ -181,7 +191,8 @@ class FollowApp:
             else:
                 self._log(f"「LET'S GO」在 {self.mode} 時不做事（要回家請說 LET'S GO HOME 或按 h）")
                 return
-        if command == "home" and source == "voice" and self.mode not in ("follow", "gaze", "dance"):
+        if (command == "home" and source == "voice" and not self.scripted
+                and self.mode not in ("follow", "gaze", "dance")):
             # "home" turns the duck 180° without needing a target. A misheard "go home" while it
             # stands idle must not spin it: by voice only mid-show (follow/gaze/dance); `h` always works.
             self._log("語音「回家」只在跟隨或注視時接受；待命時請按 h")
@@ -309,7 +320,7 @@ class FollowApp:
             if self.mode == "dance":
                 self._log("已經在跳舞")
                 return
-            back = "gaze" if self.mode in ("gaze", "follow") else "idle"
+            back = "gaze" if self.mode in ("gaze", "follow") and not self.scripted else "idle"
             was_follow = self.mode == "follow"
             if self._ready_for_posture("跳舞"):
                 self.return_mode = back
@@ -469,6 +480,8 @@ class FollowApp:
                    else f"時間到 {elapsed:.0f} 秒，odom 量到 {along:.2f} 公尺")
             self.guard.confirm_stopped()
             self._log(f"直走結束：{why}")
+            self.on_stage = not getattr(self, "going_home", False)
+            self.going_home = False
             self.set_mode("idle", "直走結束")
             return None
         refused = self.guard.set_velocity(self.guard.limits.max_forward, 0.0)
@@ -531,7 +544,10 @@ class FollowApp:
         self.guard.confirm_stopped()
         kind = self.turn_kind
         self.turn, self.turn_kind = None, None
-        if kind == "home":
+        if kind == "home" and self.scripted:
+            self.going_home = True
+            self.set_mode("straight", "回家：轉身完成，直走回去")
+        elif kind == "home":
             self.set_mode("follow", "回家：轉身完成，跟隨主持人")
         else:
             # Same discipline as after any pulse: acknowledged stop, settle, fresh frame.
@@ -791,6 +807,11 @@ def main(argv=None) -> int:
     parser.add_argument("--target-id", type=int, default=0, help="ArUco marker id to follow")
     parser.add_argument("--forward", type=float, default=0.12,
                         help="pulse speed and cap, m/s (pulses ask for at most 0.25; the guard caps at ≤ 0.30)")
+    parser.add_argument("--scripted", action="store_true",
+                        help="no camera: f / \"Let's go\" walks straight --walk-m metres on stage, "
+                             "h / \"Let's go home\" turns round and walks straight back")
+    parser.add_argument("--walk-m", type=float, default=STRAIGHT_DISTANCE,
+                        help="metres for the scripted / k straight walk (0.3..4.0)")
     parser.add_argument("--hot-joint", metavar="NAME:C",
                         help="one servo whose temperature reads high gets its own limit, e.g. "
                              "left_hip_roll:80 (others stay at 65 °C; at most 85)")
@@ -823,7 +844,12 @@ def main(argv=None) -> int:
     if sum(map(bool, (args.replay, args.camera, args.relay))) > 1:
         print("--replay、--camera、--relay 只能選一個。", file=sys.stderr)
         return 2
-    if args.live and not live_source:
+    if args.scripted and live_source:
+        print("--scripted 不用相機：不要同時給 --camera / --relay。", file=sys.stderr)
+        return 2
+    if not 0.3 <= args.walk_m <= 4.0:
+        parser.error("--walk-m 必須在 0.3..4.0 公尺")
+    if args.live and not live_source and not args.scripted:
         print("--live 需要 --camera 或 --relay：不是這台鴨子即時相機的偵測結果，不能拿來驅動它。", file=sys.stderr)
         return 2
     hot_joint, hot_max = "", 65.0
@@ -886,7 +912,11 @@ def main(argv=None) -> int:
                 guard.start()
                 tracker = Tracker(default_tracker_options(args.target_id, args.forward))
                 app = FollowApp(guard, source, commands, tracker=tracker, log=say,
-                                home_angle=math.radians(args.home_turn))
+                                home_angle=math.radians(args.home_turn), scripted=args.scripted,
+                                walk_m=args.walk_m)
+                if args.scripted:
+                    say(f"腳本模式（不用相機）：f / Let's go = 直走 {args.walk_m:g} 公尺上台；"
+                        f"h / Let's go home = 轉身 {args.home_turn:g}° 再直走回來")
                 if args.record:
                     recorder = app.recorder = Recorder(args.record)
                     say(f"錄下偵測結果：{args.record}")

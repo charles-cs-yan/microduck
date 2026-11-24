@@ -4,6 +4,8 @@
 #   bash ~/microduck-follow/current/follow/show.sh            # camera + voice + live
 #   bash ~/microduck-follow/current/follow/show.sh --no-voice # keyboard only
 #   SHOW_DRY=1 bash …/show.sh                                 # rehearsal without moving (dry run)
+#   bash …/show.sh --scripted --no-voice --command-pipe /tmp/microduck-voice
+#        # no camera, no sudo: f / "Let's go" walks straight on, h / "Let's go home" turns and walks back
 #
 # 1. read-only preflight (battery, CPU, gate) — refuses at or below 7.0 V (the user's floor; the vendor says 7.5)
 # 2. sudo once (password typed by the operator), stop mediad (it holds the camera)
@@ -14,6 +16,7 @@ BASE=${FOLLOW_HOME:-$HOME/microduck-follow}
 cd "$BASE/current" || { echo "找不到 $BASE/current；先部署"; exit 2; }
 
 VOICE=--voice
+SCRIPTED=""
 EXTRA=()
 # left_hip_roll reads ~15 °C hotter than it feels since the 11/24 fall (the user checked by hand):
 # its own limit is 80 °C by default here; pass another --hot-joint to change it.
@@ -21,6 +24,7 @@ HOT=(--hot-joint left_hip_roll:80)
 for arg in "$@"; do
   case "$arg" in
     --no-voice) VOICE="" ;;
+    --scripted) SCRIPTED=1; EXTRA+=("$arg") ;;
     --hot-joint|--hot-joint=*) HOT=(); EXTRA+=("$arg") ;;
     *) EXTRA+=("$arg") ;;
   esac
@@ -45,12 +49,16 @@ python3 -m follow.probe --seconds 4 | tail -7
 if [ -n "$VOICE" ] && [ ! -x "$BASE/venv-voice/bin/python" ]; then
   echo "✗ 沒有語音環境（$BASE/venv-voice）；先跑 follow/voice/setup_venv.sh，或加 --no-voice"; exit 2
 fi
-if [ ! -x "$HOME/microduck-vision/.venv/bin/python" ]; then
+if [ -z "$SCRIPTED" ] && [ ! -x "$HOME/microduck-vision/.venv/bin/python" ]; then
   echo "✗ 沒有視覺環境（~/microduck-vision/.venv）；先跑 follow/vision/setup_venv.sh"; exit 2
 fi
 
 echo
 read -r -p "扶好鴨子後按 Enter 繼續（Ctrl-C 取消，什麼都不會改）" _
+if [ -n "$SCRIPTED" ]; then
+  # No camera, so mediad keeps running and no sudo is needed.
+  exec python3 -m follow.app $VOICE $LIVE "${EXTRA[@]}"
+fi
 echo "== 需要 sudo 停 mediad（它占用相機）："
 sudo -v || exit 1
 # Keep the sudo timestamp fresh (default 15 min) so restoring mediad at the end never needs a
