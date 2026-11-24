@@ -20,7 +20,7 @@
 **Say "Let's go" — a biped robot duck follows you on stage, dances, and walks you home.**
 
 ![status](https://img.shields.io/badge/status-work_in_progress-ffd23f?style=for-the-badge)
-![tests](https://img.shields.io/badge/tests-278_passing-4fd18b?style=for-the-badge)
+[![tests](https://img.shields.io/github/actions/workflow/status/charles-cs-yan/microduck/tests.yml?branch=main&style=for-the-badge&label=278%20tests)](https://github.com/charles-cs-yan/microduck/actions/workflows/tests.yml)
 ![python](https://img.shields.io/badge/python-3.13-58d6e6?style=for-the-badge&logo=python&logoColor=white)
 ![robotd](https://img.shields.io/badge/robotd-API_v18-ff8a3d?style=for-the-badge)
 ![license](https://img.shields.io/badge/license-Apache_2.0-93a0bd?style=for-the-badge)
