@@ -15,9 +15,17 @@ cd "$BASE/current" || { echo "找不到 $BASE/current；先部署"; exit 2; }
 
 VOICE=--voice
 EXTRA=()
+# left_hip_roll reads ~15 °C hotter than it feels since the 11/24 fall (the user checked by hand):
+# its own limit is 80 °C by default here; pass another --hot-joint to change it.
+HOT=(--hot-joint left_hip_roll:80)
 for arg in "$@"; do
-  if [ "$arg" = "--no-voice" ]; then VOICE=""; else EXTRA+=("$arg"); fi
+  case "$arg" in
+    --no-voice) VOICE="" ;;
+    --hot-joint|--hot-joint=*) HOT=(); EXTRA+=("$arg") ;;
+    *) EXTRA+=("$arg") ;;
+  esac
 done
+EXTRA+=("${HOT[@]}")
 LIVE=--live
 [ -n "${SHOW_DRY:-}" ] && LIVE=""
 
