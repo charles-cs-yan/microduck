@@ -65,7 +65,7 @@ class StandToolTest(unittest.TestCase):
 
     def test_refuses_on_low_battery(self):
         self.push(policy="held", safety={"fallen": True, "limp": True})
-        self.fake.health = healthy_health(battery={"volts": 7.15, "percent": 30})
+        self.fake.health = healthy_health(battery={"volts": 6.95, "percent": 30})
         self.assertEqual(self.run_tool(), 2)
         self.assertEqual(self.sent("robot.enable"), [])
 

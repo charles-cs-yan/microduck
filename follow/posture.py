@@ -35,7 +35,7 @@ SITTING_POLICIES = ("sit",)
 # robotd is in the middle of something it will finish on its own. robot.stop does NOT cancel a
 # skill (it only zeroes the twist), so while one of these is reported nothing new may be asked.
 BUSY_POLICIES = ("rise", "standup", "roulade", "ground_pick", "kick_left", "kick_right")
-VENDOR_FLOOR_V = 7.2  # rising draws a burst of current; below this the board may brown out mid-rise. The vendor says 7.5; the user set 7.2 on 2026-11-25 (charger tops out near 7.8 V)
+VENDOR_FLOOR_V = 7.0  # rising draws a burst of current; below this the board may brown out mid-rise. The vendor says 7.5; the user set 7.0 (3.5 V/cell) on 2026-11-25. Do not go lower: below ~6.6 V under load the LiPo is damaged
 STATE_FRESH = 1.0     # s; a posture decision on an older robot.state is refused
 
 

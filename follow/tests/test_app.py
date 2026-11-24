@@ -376,7 +376,7 @@ class FollowFlowTest(AppHarness):
         self.assertIn("robot.stop", self.methods())
 
     def test_low_battery_blocks_follow(self):
-        self.fake.health["battery"] = {"volts": 7.15, "percent": 40}
+        self.fake.health["battery"] = {"volts": 6.95, "percent": 40}
         self.commands.put("follow")
         for _ in range(40):
             self.step(marker_size=.2)
