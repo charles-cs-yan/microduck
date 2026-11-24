@@ -8,7 +8,7 @@ human-readable reason (Traditional Chinese, shown to the operator).
 Project rules encoded here (CLAUDE.md):
 * forward ≤ 0.12 m/s to start, never above the 0.30 m/s operator ceiling;
 * vy is never used;
-* stop walking when the battery approaches 7.5 V (default floor 7.6 V, never below 7.4 V);
+* stop walking at 7.2 V (the user's floor since 2026-11-25; the vendor reference is 7.5 V);
 * detection is thermally limited — refuse to move when the CPU is too hot.
 """
 
@@ -30,7 +30,7 @@ class Limits:
     # V; at or below this, walking stops and the operator is told to charge. 0.1 V above the
     # vendor's 7.5 V reference because robotd's reading is smoothed (~10 s time constant) and
     # misses the sag when motors start (vendor 斷線處理指南 §1.1, §2.1).
-    min_battery_v: float = 7.6
+    min_battery_v: float = 7.2
     max_cpu_c: float = 90.0        # °C; full-speed detection reaches ~95 °C and throttles to 408 MHz
     max_motor_c: float = 65.0      # °C, hottest servo case
     # One servo whose temperature reading is known to run high (left_hip_roll after the 11/24
@@ -55,8 +55,8 @@ class Limits:
             raise ValueError("max_backward exceeds the operator ceiling")
         if self.max_yaw_rate > 1.0:
             raise ValueError("max_yaw_rate above 1.0 rad/s is outside this demo's envelope")
-        if self.min_battery_v < 7.4:
-            raise ValueError("min_battery_v may not be set below 7.4 V")
+        if self.min_battery_v < 7.2:
+            raise ValueError("min_battery_v may not be set below 7.2 V")
         if not _finite(self.hot_joint_max_c) or not self.max_motor_c <= self.hot_joint_max_c <= 75.0:
             raise ValueError("hot_joint_max_c must be between max_motor_c and 75 °C")
 

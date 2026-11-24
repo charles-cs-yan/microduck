@@ -10,7 +10,7 @@ L = Limits()
 class LimitsTest(unittest.TestCase):
     def test_defaults_match_project_rules(self):
         self.assertEqual(L.max_forward, 0.12)
-        self.assertEqual(L.min_battery_v, 7.6)
+        self.assertEqual(L.min_battery_v, 7.2)
 
     def test_cannot_exceed_operator_ceiling(self):
         with self.assertRaises(ValueError):
@@ -21,8 +21,8 @@ class LimitsTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             Limits(min_battery_v=7.0)
         with self.assertRaises(ValueError):
-            Limits(min_battery_v=7.39)
-        Limits(min_battery_v=7.4)  # the user's floor (vendor: 7.5) is the lowest allowed setting
+            Limits(min_battery_v=7.19)
+        Limits(min_battery_v=7.2)  # the user's floor (vendor: 7.5) is the lowest allowed setting
 
     def test_rejects_nan(self):
         with self.assertRaises(ValueError):
@@ -72,11 +72,11 @@ class HealthGateTest(unittest.TestCase):
     def test_low_battery(self):
         problem = health_problem(healthy_health(battery={"volts": 6.96, "percent": 23}), 0.1, L)
         self.assertIn("請充電", problem)
-        self.assertIn("請充電", health_problem(healthy_health(battery={"volts": 7.5, "percent": 40}), 0.1, L))
-        # Smoothed reading between 7.5 and 7.6 V: still stopped, because the real sag is lower.
-        self.assertIn("請充電", health_problem(healthy_health(battery={"volts": 7.58, "percent": 42}), 0.1, L))
-        self.assertIn("請充電", health_problem(healthy_health(battery={"volts": 7.6, "percent": 43}), 0.1, L))
-        self.assertEqual(health_problem(healthy_health(battery={"volts": 7.61, "percent": 43}), 0.1, L), "")
+        self.assertIn("請充電", health_problem(healthy_health(battery={"volts": 7.1, "percent": 40}), 0.1, L))
+        # At and just above the 7.2 V floor: stopped; a little above it: allowed.
+        self.assertIn("請充電", health_problem(healthy_health(battery={"volts": 7.15, "percent": 42}), 0.1, L))
+        self.assertIn("請充電", health_problem(healthy_health(battery={"volts": 7.2, "percent": 43}), 0.1, L))
+        self.assertEqual(health_problem(healthy_health(battery={"volts": 7.21, "percent": 43}), 0.1, L), "")
         self.assertIn("電池", health_problem(healthy_health(battery=None), 0.1, L))
 
     def test_imu(self):

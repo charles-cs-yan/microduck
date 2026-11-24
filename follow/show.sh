@@ -5,8 +5,7 @@
 #   bash ~/microduck-follow/current/follow/show.sh --no-voice # keyboard only
 #   SHOW_DRY=1 bash …/show.sh                                 # rehearsal without moving (dry run)
 #
-# 1. read-only preflight (battery, CPU, gate) — refuses at or below 7.4 V (the user's floor; the vendor says 7.5);
-#    between 7.4 and 7.6 V it starts but the app's MotionGuard refuses walking (dance/greet/gaze only)
+# 1. read-only preflight (battery, CPU, gate) — refuses at or below 7.2 V (the user's floor; the vendor says 7.5)
 # 2. sudo once (password typed by the operator), stop mediad (it holds the camera)
 # 3. run follow.app; it asks "yes" itself before anything moves
 # 4. ALWAYS start mediad again on exit (trap), whatever happened
@@ -26,12 +25,12 @@ echo "== 唯讀檢查"
 health=$(robotctl health 2>&1)
 echo "$health" | grep -E "robot |battery|cpu|motors"
 volts=$(echo "$health" | sed -n 's/.*battery *\([0-9.]*\) V.*/\1/p' | head -1)
-# Pass only on a well-formed number > 7.4; anything odd (empty, ".", an awk error) refuses.
-if ! awk -v v="$volts" 'BEGIN{exit !(v ~ /^[0-9]+(\.[0-9]+)?$/ && v + 0 > 7.4)}'; then
-  echo "✗ 電池 ${volts:-未知} V：不高於 7.4 V 或讀不到，先充電。"; exit 1
+# Pass only on a well-formed number > 7.2; anything odd (empty, ".", an awk error) refuses.
+if ! awk -v v="$volts" 'BEGIN{exit !(v ~ /^[0-9]+(\.[0-9]+)?$/ && v + 0 > 7.2)}'; then
+  echo "✗ 電池 ${volts:-未知} V：不高於 7.2 V 或讀不到，先充電。"; exit 1
 fi
-if awk -v v="$volts" 'BEGIN{exit !(v + 0 < 7.6)}'; then
-  echo "⚠ 電池 ${volts} V：低於 7.6 V，這次只能原地動作（跳舞、打招呼、轉頭），不會走路。"
+if awk -v v="$volts" 'BEGIN{exit !(v + 0 < 7.5)}'; then
+  echo "⚠ 電池 ${volts} V：低於原廠的 7.5 V，請盡快充電（7.2 V 會停）。"
 fi
 python3 -m follow.probe --seconds 4 | tail -7
 
