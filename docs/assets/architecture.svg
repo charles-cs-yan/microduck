@@ -44,11 +44,10 @@
 
   <!-- wires into the app: three inputs merge into one trunk -->
   <g class="wire">
-    <path d="M236 84 H248 Q260 84 260 96 V148 Q260 160 272 160"/>
-    <path d="M236 236 H248 Q260 236 260 224 V172 Q260 160 272 160"/>
+    <path d="M236 84 H238 Q250 84 250 96 V148 Q250 160 262 160"/>
+    <path d="M236 236 H238 Q250 236 250 224 V172 Q250 160 262 160"/>
     <path d="M236 160 H279" marker-end="url(#h)"/>
   </g>
-  <circle cx="260" cy="160" r="3.5" fill="#93a0bd"/>
 
   <!-- decide -->
   <g class="sans">
