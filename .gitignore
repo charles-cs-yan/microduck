@@ -13,3 +13,6 @@ __pycache__/
 
 # devlog lives only as a private claude.ai artifact
 /docs/devlog/
+
+# voice recordings stay local (they are people's voices)
+*.wav
