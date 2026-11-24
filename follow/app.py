@@ -43,6 +43,7 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Callable, Optional
@@ -50,7 +51,7 @@ from typing import Callable, Optional
 from .motion import MotionGuard, install_signal_handlers
 from .robotd_client import DEFAULT_SOCKET, RobotdClient, RobotdError
 from .safety import Limits, hard_problem
-from .sources import CommandQueue, Frame, NullSource, ProcessDetectionSource, Recorder, ReplaySource
+from .sources import COMMANDS, CommandQueue, Frame, NullSource, ProcessDetectionSource, Recorder, ReplaySource
 from .speech import VoiceCommands, default_python
 from .status import StatusPrinter, compose
 from .tracker import Decision, FollowCycle, Tracker, TrackerOptions
@@ -683,6 +684,39 @@ class FollowApp:
             time.sleep(max(0.0, period - (self._clock() - started)))
 
 
+def start_command_pipe(path: Path, commands: CommandQueue, say: Callable[[str], None]) -> threading.Thread:
+    """Read command labels from a named pipe on a daemon thread, as source "voice".
+
+    The writer (the laptop's recogniser over SSH) may come and go: on EOF the pipe is reopened.
+    Unknown lines are logged and ignored; nothing here can move the duck except through the
+    same CommandQueue and gates as the keyboard.
+    """
+    import os
+    import stat
+
+    if path.exists() and not stat.S_ISFIFO(path.stat().st_mode):
+        raise SystemExit(f"--command-pipe {path} 已存在但不是 FIFO")
+    if not path.exists():
+        os.mkfifo(path, 0o600)
+
+    def reader() -> None:
+        while True:
+            with open(path, "r", encoding="utf-8", errors="replace") as fifo:  # blocks until a writer
+                for line in fifo:
+                    label = line.strip().lower()
+                    if not label:
+                        continue
+                    if label not in COMMANDS:
+                        say(f"筆電語音：不認得的指令 {label!r}")
+                        continue
+                    say(f"筆電語音：{label}")
+                    commands.put(label, source="voice")
+
+    thread = threading.Thread(target=reader, name="follow-command-pipe", daemon=True)
+    thread.start()
+    return thread
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Microduck follow main program")
     parser.add_argument("--socket", default=DEFAULT_SOCKET)
@@ -717,6 +751,9 @@ def main(argv=None) -> int:
     parser.add_argument("--kws-threshold", type=float, default=0.35,
                         help="keyword threshold 0.1..0.6: lower hears more in noise, and mishears more")
     parser.add_argument("--record", metavar="JSONL", help="save every detection, replayable with --replay")
+    parser.add_argument("--command-pipe", metavar="FIFO",
+                        help="also take voice commands, one label per line, from this named pipe "
+                             "(the laptop's speech recogniser, follow/voice/asr_bridge.py)")
     args = parser.parse_args(argv)
     if not 0.1 <= args.kws_threshold <= 0.6:
         parser.error("--kws-threshold 必須在 0.1..0.6")
@@ -789,6 +826,9 @@ def main(argv=None) -> int:
                     recorder = app.recorder = Recorder(args.record)
                     say(f"錄下偵測結果：{args.record}")
                 commands.read_lines(log=say)
+                if args.command_pipe:
+                    start_command_pipe(Path(args.command_pipe), commands, say)
+                    say(f"語音（筆電辨識）：從 {args.command_pipe} 接收指令")
                 say("指令：f=跟隨 g=注視 w=打招呼 d=跳舞 h=回家 s 或 Enter=停 q=結束 ｜ x=坐下 u=站起來 p=趴下 1=撿東西 2=翻滾 3/4=左/右踢（2、3、4 和從地上站起來都要連按兩次）")
                 if args.voice:
                     voice = VoiceCommands(commands, log=say).start(
