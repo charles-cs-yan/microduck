@@ -1,4 +1,6 @@
 Microduck follow module
+Copyright 2026 Charles Yan
+
 Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 Parts of follow/ are Python ports of, or are written against, code from the
