@@ -54,6 +54,12 @@ IMU and servo health, and the module stops the duck whenever it loses its target
   <img src="docs/assets/show-flow.svg" alt="Show flow: idle, then follow on Let's go, idle when the host stops, dance on Let's party, home on Let's go home, follow once turned 180 degrees, idle on key s" width="100%">
 </div>
 
+**Show mode (since 2026-11-25): scripted.** Marker following was unreliable in rehearsal, so the show
+runs without the camera: "Let's go" walks straight 2 m on stage, "Let's go home" turns 180° and walks
+straight back. Speech is recognised on the operator's laptop from the duck's microphone (the duck's own
+keyword spotter missed too much natural speech). One command starts both:
+`powershell -File follow\start_show.ps1`. Marker following remains available with `-Camera`.
+
 "Let's go" depends on context: from standby it means follow, after a dance it means go home. A clipped
 "Let's go home" therefore still does the right thing.
 
