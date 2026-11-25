@@ -31,11 +31,11 @@
   <g class="sans">
     <rect class="box" x="20" y="52" width="216" height="64" rx="12"/>
     <text class="name" x="38" y="78" fill="#ffd23f">Microphone</text>
-    <text class="desc" x="38" y="99">sherpa-onnx keyword spotter</text>
+    <text class="desc" x="38" y="99">duck mic, laptop recogniser</text>
 
     <rect class="box" x="20" y="128" width="216" height="64" rx="12"/>
-    <text class="name" x="38" y="154" fill="#58d6e6">Camera</text>
-    <text class="desc" x="38" y="175">ArUco marker, about 2 Hz</text>
+    <text class="name" x="38" y="154" fill="#58d6e6">Camera (backup)</text>
+    <text class="desc" x="38" y="175">ArUco marker, -Camera only</text>
 
     <rect class="box" x="20" y="204" width="216" height="64" rx="12"/>
     <text class="name" x="38" y="230" fill="#ff8a3d">Keyboard over SSH</text>
@@ -54,7 +54,7 @@
     <rect x="282" y="104" width="200" height="112" rx="14" fill="#18223d" stroke="#ffd23f" stroke-width="2"/>
     <text class="name mono" x="300" y="134" fill="#ffd23f">follow.app</text>
     <text class="desc" x="300" y="158">mode machine</text>
-    <text class="desc" x="300" y="177">tracker: pulse, stop, look</text>
+    <text class="desc" x="300" y="177">straight 2 m on odometry</text>
     <text class="desc" x="300" y="196">turns on odometry</text>
   </g>
 
@@ -65,7 +65,7 @@
     <rect x="518" y="68" width="210" height="184" rx="14" fill="#121a30" stroke="#ffb347" stroke-width="2" stroke-dasharray="6 4"/>
     <text class="name mono" x="536" y="98" fill="#ffb347">MotionGuard</text>
     <g class="desc">
-      <text x="536" y="124">battery ≥ 7.6 V to walk</text>
+      <text x="536" y="124">battery ≥ 7.0 V to walk</text>
       <text x="536" y="145">CPU &lt; 90 °C</text>
       <text x="536" y="166">≤ 0.12 m/s, never sideways</text>
       <text x="536" y="187">state fresh, not fallen</text>

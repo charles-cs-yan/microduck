@@ -26,23 +26,21 @@
   <rect width="1280" height="640" fill="url(#glow)"/>
   <text x="90" y="150" fill="#58d6e6" font-family="Consolas, 'Cascadia Mono', monospace" font-size="24" letter-spacing="4">MHDUCK BIPED · RADXA ZERO 3W</text>
   <text x="84" y="270" fill="#e8ecf6" font-family="'Segoe UI', system-ui, sans-serif" font-weight="800" font-size="120" letter-spacing="-2">MICRODUCK</text>
-  <text x="90" y="340" fill="#93a0bd" font-family="'Segoe UI', system-ui, sans-serif" font-size="34">Say "Let's go." It follows you on stage,</text>
-  <text x="90" y="388" fill="#93a0bd" font-family="'Segoe UI', system-ui, sans-serif" font-size="34">dances, and walks you home.</text>
+  <text x="90" y="340" fill="#93a0bd" font-family="'Segoe UI', system-ui, sans-serif" font-size="34">Say "Let's go." It walks on stage,</text>
+  <text x="90" y="388" fill="#93a0bd" font-family="'Segoe UI', system-ui, sans-serif" font-size="34">dances, and walks back home.</text>
   <g font-family="Consolas, 'Cascadia Mono', monospace" font-size="22" font-weight="700">
-    <rect x="90" y="450" width="196" height="48" rx="24" fill="none" stroke="#ffd23f" stroke-width="2"/>
-    <text x="188" y="481" fill="#ffd23f" text-anchor="middle">ACT 1 FOLLOW</text>
-    <rect x="304" y="450" width="186" height="48" rx="24" fill="none" stroke="#ffd23f" stroke-width="2"/>
-    <text x="397" y="481" fill="#ffd23f" text-anchor="middle">ACT 2 DANCE</text>
-    <rect x="508" y="450" width="208" height="48" rx="24" fill="none" stroke="#ffd23f" stroke-width="2"/>
-    <text x="612" y="481" fill="#ffd23f" text-anchor="middle">ACT 3 GO HOME</text>
+    <rect x="90" y="450" width="210" height="48" rx="24" fill="none" stroke="#ffd23f" stroke-width="2"/>
+    <text x="195" y="481" fill="#ffd23f" text-anchor="middle">ACT 1 WALK ON</text>
+    <rect x="318" y="450" width="186" height="48" rx="24" fill="none" stroke="#ffd23f" stroke-width="2"/>
+    <text x="411" y="481" fill="#ffd23f" text-anchor="middle">ACT 2 DANCE</text>
+    <rect x="522" y="450" width="208" height="48" rx="24" fill="none" stroke="#ffd23f" stroke-width="2"/>
+    <text x="626" y="481" fill="#ffd23f" text-anchor="middle">ACT 3 GO HOME</text>
   </g>
   <text x="90" y="570" fill="#5d6a88" font-family="Consolas, 'Cascadia Mono', monospace" font-size="22">github.com/charles-cs-yan/microduck</text>
-  <path d="M1105 250 L1162 226" stroke="#58d6e6" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 12"/>
-  <g transform="translate(1160 190)">
-    <rect width="64" height="64" rx="4" fill="#e8ecf6"/>
-    <rect x="10" y="10" width="17" height="17" fill="#0b1020"/><rect x="37" y="10" width="17" height="10" fill="#0b1020"/>
-    <rect x="22" y="30" width="20" height="14" fill="#0b1020"/><rect x="10" y="44" width="10" height="10" fill="#0b1020"/>
-    <rect x="37" y="42" width="17" height="12" fill="#0b1020"/>
-  </g>
-  <use href="#duck" xlink:href="#duck" x="790" y="170" width="350" height="364"/>
+  <path d="M990 520 H1176" stroke="#58d6e6" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 12"/>
+  <path d="M1162 506 L1180 520 L1162 534" fill="none" stroke="#58d6e6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="1085" y="566" fill="#58d6e6" text-anchor="middle" font-family="Consolas, 'Cascadia Mono', monospace" font-size="26" font-weight="700">2 m</text>
+  <line x1="1206" y1="330" x2="1206" y2="522" stroke="#e8ecf6" stroke-width="6" stroke-linecap="round"/>
+  <path d="M1209 334 L1252 352 L1209 370 Z" fill="#ff8a3d"/>
+  <use href="#duck" xlink:href="#duck" x="730" y="170" width="350" height="364"/>
 </svg>

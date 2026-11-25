@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 250" width="980" height="250">
-  <title>Show flow: idle, follow, idle, dance, home, follow, idle</title>
+  <title>Show flow: idle, straight, idle, dance, home, straight, idle</title>
   <style>
     .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
     .sans { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
@@ -37,13 +37,13 @@
     <path d="M542 132 H574"/><path d="M682 132 H714"/><path d="M822 132 H854"/>
   </g>
 
-  <!-- triggers, one per arrow: yellow = voice, dashed grey = automatic, orange = operator key -->
+  <!-- triggers, one per arrow: yellow = voice, dashed grey = automatic -->
   <g class="mono">
     <rect x="92" y="76" width="92" height="28" rx="14" fill="#0b1020" stroke="#ffd23f" stroke-width="1.5"/>
     <text class="chip-t" x="138" y="95" text-anchor="middle" fill="#ffd23f">Let's go</text>
 
     <rect x="224" y="76" width="108" height="28" rx="14" fill="#0b1020" stroke="#93a0bd" stroke-width="1.5" stroke-dasharray="4 3"/>
-    <text class="chip-t" x="278" y="95" text-anchor="middle" fill="#93a0bd">host stops</text>
+    <text class="chip-t" x="278" y="95" text-anchor="middle" fill="#93a0bd">2 m walked</text>
 
     <rect x="360" y="76" width="116" height="28" rx="14" fill="#0b1020" stroke="#ffd23f" stroke-width="1.5"/>
     <text class="chip-t" x="418" y="95" text-anchor="middle" fill="#ffd23f">Let's party</text>
@@ -54,8 +54,8 @@
     <rect x="644" y="76" width="108" height="28" rx="14" fill="#0b1020" stroke="#93a0bd" stroke-width="1.5" stroke-dasharray="4 3"/>
     <text class="chip-t" x="698" y="95" text-anchor="middle" fill="#93a0bd">turned 180°</text>
 
-    <rect x="796" y="76" width="84" height="28" rx="14" fill="#0b1020" stroke="#ff8a3d" stroke-width="1.5"/>
-    <text class="chip-t" x="838" y="95" text-anchor="middle" fill="#ff8a3d">key s</text>
+    <rect x="784" y="76" width="108" height="28" rx="14" fill="#0b1020" stroke="#93a0bd" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text class="chip-t" x="838" y="95" text-anchor="middle" fill="#93a0bd">2 m walked</text>
   </g>
 
   <!-- states -->
@@ -65,12 +65,12 @@
     <text class="cap" x="70" y="176" text-anchor="middle">standing by</text>
 
     <rect x="158" y="112" width="104" height="40" rx="20" fill="#58d6e6"/>
-    <text class="node-t" x="210" y="138" text-anchor="middle" fill="#0b1020">follow</text>
-    <text class="cap" x="210" y="176" text-anchor="middle">walks to the host</text>
+    <text class="node-t" x="210" y="138" text-anchor="middle" fill="#0b1020">straight</text>
+    <text class="cap" x="210" y="176" text-anchor="middle">walks 2 m on stage</text>
 
     <rect x="298" y="112" width="104" height="40" rx="20" fill="#18223d" stroke="#5d6a88" stroke-width="1.5"/>
     <text class="node-t" x="350" y="138" text-anchor="middle" fill="#e8ecf6">idle</text>
-    <text class="cap" x="350" y="176" text-anchor="middle">stands by him</text>
+    <text class="cap" x="350" y="176" text-anchor="middle">on stage</text>
 
     <rect x="438" y="112" width="104" height="40" rx="20" fill="#ffd23f"/>
     <text class="node-t" x="490" y="138" text-anchor="middle" fill="#1a1400">dance</text>
@@ -81,8 +81,8 @@
     <text class="cap" x="630" y="176" text-anchor="middle">turns around</text>
 
     <rect x="718" y="112" width="104" height="40" rx="20" fill="#58d6e6"/>
-    <text class="node-t" x="770" y="138" text-anchor="middle" fill="#0b1020">follow</text>
-    <text class="cap" x="770" y="176" text-anchor="middle">walks off with him</text>
+    <text class="node-t" x="770" y="138" text-anchor="middle" fill="#0b1020">straight</text>
+    <text class="cap" x="770" y="176" text-anchor="middle">walks 2 m back</text>
 
     <rect x="858" y="112" width="104" height="40" rx="20" fill="#18223d" stroke="#5d6a88" stroke-width="1.5"/>
     <text class="node-t" x="910" y="138" text-anchor="middle" fill="#e8ecf6">idle</text>
@@ -96,8 +96,6 @@
     <text x="40" y="226" fill="#93a0bd">voice</text>
     <rect x="98" y="215" width="14" height="14" rx="7" fill="none" stroke="#93a0bd" stroke-width="1.5" stroke-dasharray="3 2"/>
     <text x="120" y="226" fill="#93a0bd">automatic</text>
-    <rect x="210" y="215" width="14" height="14" rx="7" fill="none" stroke="#ff8a3d" stroke-width="1.5"/>
-    <text x="232" y="226" fill="#93a0bd">operator key</text>
-    <text x="962" y="226" text-anchor="end" fill="#5d6a88">s or Enter stops the duck from any state</text>
+    <text x="962" y="226" text-anchor="end" fill="#5d6a88">keys f, d, h back up the voice; s or Enter stops from any state</text>
   </g>
 </svg>

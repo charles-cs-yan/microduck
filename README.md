@@ -22,7 +22,7 @@ _Say "Let's go."_
 <br>
 
 <div align="center">
-  <img src="docs/assets/banner.svg" alt="Act 1 follow, Act 2 dance, Act 3 go home" width="100%">
+  <img src="docs/assets/banner.svg" alt="Act 1 walk on, Act 2 dance, Act 3 go home" width="100%">
 </div>
 
 <br>
@@ -51,7 +51,7 @@ IMU and servo health, and the module stops the duck whenever it loses its target
 | 3 | **"Let's go home"** | Turns 180° and walks straight 2 m off stage | `h` |
 
 <div align="center">
-  <img src="docs/assets/show-flow.svg" alt="Show flow: idle, then follow on Let's go, idle when the host stops, dance on Let's party, home on Let's go home, follow once turned 180 degrees, idle on key s" width="100%">
+  <img src="docs/assets/show-flow.svg" alt="Show flow: idle, walk straight 2 m on Let's go, idle on stage, dance on Let's party, turn 180 degrees on Let's go home, walk straight 2 m back, idle off stage" width="100%">
 </div>
 
 **Show mode (since 2026-11-25): scripted.** Marker following was unreliable in rehearsal, so the show
@@ -160,7 +160,7 @@ the marker-following show, which stops the media daemon and needs sudo.
 ## Architecture
 
 <div align="center">
-  <img src="docs/assets/architecture.svg" alt="Architecture: microphone, camera and keyboard feed follow.app, which passes every motion request through MotionGuard to robotd over its socket" width="100%">
+  <img src="docs/assets/architecture.svg" alt="Architecture: microphone, backup camera and keyboard feed follow.app, which passes every motion request through MotionGuard to robotd over its socket" width="100%">
 </div>
 
 The module is only ever a **client** of `robotd`. It sends intents over the socket and never touches motor,
