@@ -67,6 +67,10 @@ ACK_SOUNDS = {"follow": "chirp", "gaze": "peck", "home": "coo", "idle": "coo", "
 # timeout is the backstop because odom under-reads at low speed (0.12 m/s × 3 s read 0.22 m).
 # No heading correction: odom.yaw's sign is not verified on this duck yet.
 STRAIGHT_DISTANCE = 2.0  # m
+# A stand-up / skill counts as done only after this long standing with fallen and limp both
+# false. 11/26: right after a seated rise robotd's limp-fall fired twice within 3 s (gravity_z
+# -0.70, rate 3.2); "done" landed in the 0.3 s gap and the turn that followed hit the second limp.
+SKILL_SETTLE = 3.0  # s
 STRAIGHT_TIMEOUT = 35.0  # s; at the ~0.07 m/s the duck really makes, 2 m takes ~30 s
 LOST_HINT_AFTER = 4.0    # s without a marker in follow/gaze before the duck "asks"
 LOST_HINT_REPEAT = math.inf  # once per mode: repeated calls drown out the host's next command
@@ -289,7 +293,7 @@ class FollowApp:
                 if problem:
                     self._log(f"不能從坐姿站起來：{problem}")
                     return
-                self._start_skill("sit_toggle", "從坐姿站起來", timeout=10.0)
+                self._start_skill("sit_toggle", "從坐姿站起來", timeout=15.0)
                 return
             if self._standing():
                 self._log("已經站著")
@@ -315,7 +319,7 @@ class FollowApp:
                 self.set_mode("idle", "站起來失敗")
                 return
             self.skill = {"name": "bring_up", "label": "從地上站起來", "started": self._clock(),
-                          "timeout": 20.0, "left_standing": True}
+                          "timeout": 25.0, "left_standing": True}
             return
         if command == "dance":
             if self.mode == "dance":
@@ -374,10 +378,16 @@ class FollowApp:
         if policy == "protection":
             self._log(f"✗ {skill.get('label')}後 robotd 進入保護：扶住鴨子，必要時 robotctl robot relax --yes")
             self.set_mode("idle", "技能失敗")
-        elif self._standing() and elapsed >= 0.5 and (skill.get("left_standing") or elapsed > 2.0):
+        elif not self._standing():
+            skill["steady_since"] = None
+        elif skill.get("steady_since") is None:
+            skill["steady_since"] = now
+        if (self.mode == "skill" and self._standing() and elapsed >= 0.5
+                and (skill.get("left_standing") or elapsed > 2.0)
+                and now - skill.get("steady_since", now) >= SKILL_SETTLE):
             self._log(f"✓ {skill.get('label')}完成，站穩了")
             self.set_mode("idle", "技能完成")
-        elif elapsed > skill.get("timeout", 8.0):
+        elif self.mode == "skill" and elapsed > skill.get("timeout", 8.0):
             self._log(f"✗ {skill.get('label')} {elapsed:.0f} 秒還沒站穩（policy={policy}）：扶住它，可按 u 站起來")
             self.set_mode("idle", "技能逾時")
         out = Decision(head=list(ZERO_HEAD), vx=0.0, desired_vx=0.0, reason=reason, valid=True, phase="skill")

@@ -84,7 +84,7 @@ class SitTest(PostureHarness):
         self.step_as("sit")
         self.assertEqual(self.app.mode, "skill")
         self.assertEqual(self.sent("robot.do"), [{"skill": "sit_toggle"}] * 2)
-        for policy in ("rise", "rise", "stand", "stand", "stand", "stand", "stand", "stand"):
+        for policy in ("rise", "rise") + ("stand",) * 32:
             self.step_as(policy)
         self.assertEqual(self.app.mode, "idle")
         self.assertTrue(any("站穩了" in line for line in self.logs))
@@ -135,7 +135,7 @@ class BringUpTest(PostureHarness):
         self.assertEqual(self.sent("robot.enable"), [{"on": True, "toggle": False, "stand_up": True}])
         self.assertEqual(self.app.mode, "skill")
         for policy, fallen in (("standup", True), ("standup", False), ("stand", False), ("stand", False),
-                               ("stand", False), ("stand", False), ("stand", False), ("stand", False)):
+                               ("stand", False), ("stand", False), ("stand", False), ("stand", False)) + (("stand", False),) * 26:
             self.step_as(policy, fallen=fallen)
         self.assertEqual(self.app.mode, "idle")
 
@@ -153,7 +153,7 @@ class BringUpTest(PostureHarness):
         for _ in range(2):
             self.commands.put("stand")
             self.step_as("held")
-        for _ in range(220):
+        for _ in range(300):
             self.step_as("held")
             if self.app.mode == "idle":
                 break
@@ -209,7 +209,7 @@ class SkillTest(PostureHarness):
         self.commands.put("pick")
         self.step()
         self.assertEqual(self.sent("robot.do"), [{"skill": "ground_pick"}])
-        for policy in ("ground_pick",) * 10 + ("stand",) * 8:
+        for policy in ("ground_pick",) * 10 + ("stand",) * 32:
             self.step_as(policy)
         self.assertEqual(self.app.mode, "idle")
         self.assertEqual(len(self.sent("robot.do")), 1)
@@ -223,9 +223,29 @@ class SkillTest(PostureHarness):
         self.assertEqual(self.sent("robot.do"), [{"skill": "roulade"}])
         self.step_as("roulade", fallen=True)  # mid-roll the IMU says "fallen": not a stop reason
         self.assertEqual(self.app.mode, "skill")
+        for _ in range(32):
+            self.step_as("stand")
+        self.assertEqual(self.app.mode, "idle")
+
+    def test_rise_is_done_only_after_steady_standing(self):
+        """11/26 on the duck: robotd's limp-fall fired again 0.3 s after "posed"; "done" must wait it out."""
+        self.set_state("held", fallen=True, limp=True)
+        for _ in range(2):
+            self.commands.put("stand")
+            self.step_as("held", fallen=True, limp=True)
+        self.assertEqual(self.app.mode, "skill")
+        for _ in range(15):                       # stands 1.5 s …
+            self.step_as("stand")
+        self.assertEqual(self.app.mode, "skill", "not steady for 3 s yet")
+        for _ in range(15):                       # … limp again for 1.5 s (a false fall) …
+            self.step_as("stand", limp=True)
+        for _ in range(25):                       # … then 2.5 s steady: still not enough
+            self.step_as("stand")
+        self.assertEqual(self.app.mode, "skill", "the clock restarts after a limp")
         for _ in range(8):
             self.step_as("stand")
         self.assertEqual(self.app.mode, "idle")
+        self.assertTrue(any("站穩了" in line for line in self.logs))
 
     def test_voice_cannot_trigger_skills(self):
         for command in ("pick", "roll", "kick_left"):
