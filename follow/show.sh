@@ -14,6 +14,10 @@
 set -u
 BASE=${FOLLOW_HOME:-$HOME/microduck-follow}
 cd "$BASE/current" || { echo "找不到 $BASE/current；先部署"; exit 2; }
+if pgrep -u "$(id -u)" -f -- 'follow.app .*--standby' >/dev/null; then
+  echo "開機待命（standby.sh）已經在跑：改用操作台 bash $BASE/current/follow/console.sh"
+  echo "（或先 bash $BASE/current/follow/standby.sh --stop 再跑 show.sh）"; exit 2
+fi
 
 VOICE=--voice
 SCRIPTED=""

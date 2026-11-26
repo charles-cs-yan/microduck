@@ -19,15 +19,28 @@
 2. 讀狀態：`ssh -o HostKeyAlias=192.168.50.135 radxa@192.168.50.237 robotctl health`
    - 電池 **> 7.0 V** 才能開演（低於 7.5 V 會提醒盡快充電）。
    - 如果出現 `no robot on the motor bus` 或 `out of single-turn range`：關機、**拔電池 10 秒**、鴨子擺正坐好、再開機。
-3. **一個指令開演**（在筆電的 PowerShell）：
+3. **一個指令開演**（在筆電的 PowerShell；開了「開機待命」也是同一個指令，會直接打開操作台）：
    ```powershell
    powershell -ExecutionPolicy Bypass -File D:\Microduck-Project\follow\start_show.ps1
    ```
    - 會多開一個「DUCK EARS」視窗（筆電語音）。它會自己等 show 開好再接上，斷線也會自己重連。
    - 原本的視窗會跑 show：按 Enter → **扶好鴨子再輸入 `yes`**。
+   - 開機待命（`standby_install.sh`）時沒有 Enter 那一步：視窗直接是操作台，**扶好鴨子再輸入 `yes`**。之後操作台或 DUCK EARS 斷線，鴨子會自己停下，重新連上再下指令。
    - 只用鍵盤：加 `-NoEars`。要改直走距離：加 `-WalkM 1.5`。
 4. 鴨子還坐著或是 `held`：在 show 視窗打 `u` 站起來。**起身時可能晃一下、腿軟一下再站好**（見下方「已知問題」），手護著就好，不要抓住。
 5. 試一次：說 **"Say hello"**，鴨子會轉頭、叫一聲。
+
+## 只用手機（手機開熱點＋手機 SSH 按鍵，不帶筆電）
+前提：鴨子已部署並開了「開機待命」（`bash ~/microduck-follow/current/follow/standby_install.sh`）。
+**沒有筆電就沒有語音**（語音是筆電辨識的），全部用按鍵。
+1. 手機熱點名稱 `MOHENG`（設定方式見 Wi-Fi 那節），**扶著鴨子開機**，等 1～3 分鐘。show 會自己在背景待命，鴨子坐著不動。
+2. 手機 SSH App（例如 Termius）新增主機：位址 `radxa.local`（不行就用鴨子的 IP）、使用者 `radxa`。
+   - 在那台主機的「開機指令／Startup snippet」填：`bash ~/microduck-follow/current/follow/console.sh`，以後一連上就直接進操作台。
+   - 沒設的話，連上後自己打這行也一樣。
+3. 進了操作台：**扶好鴨子 → 打 `yes` 按 Enter** 解鎖。之後**直接按字母，不用 Enter**：
+   `u` 站起、`f` 上台、`d` 跳舞、`h` 回家、`x` 坐下，**空白鍵或 Enter = 停**。
+4. **手機 App 要一直開在前景、螢幕不要鎖**：連線一斷鴨子就會停下（安全設計）。重新連上、再打一次 `yes` 就能繼續。
+5. 結束：`x` 坐下 → `Q` 結束 show → 關機（`sudo poweroff`，密碼自己輸入）。
 
 ## 老闆的流程
 | 步驟 | 老闆說 | 操作員備援 | 鴨子 |

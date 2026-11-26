@@ -27,6 +27,9 @@ robotd 的客戶端：只透過 `/run/robotd.sock` 送意圖，不碰馬達、HO
 | `probe.py` | 唯讀探測 | 否 |
 | `deploy.sh` | 複製到鴨子 `~/microduck-follow/` 並在鴨子上跑離線測試 | 否 |
 | `show.sh` | 演出一鍵：唯讀檢查（電池 < 7.6 V 拒絕）→ sudo 停 mediad → `follow.app --camera /dev/video0 --voice --live --record …`；結束一定恢復 mediad。`--no-voice`、`SHOW_DRY=1` | 透過 follow.app（會問 yes） |
+| `standby.sh` | **開機待命**：開機後在背景跑 `follow.app --live --scripted --standby`，等操作台輸入 yes 才連 robotd；`--stop`、`--status`；紀錄在 `~/microduck-follow/standby.log` | 透過 follow.app（要操作台 yes） |
+| `console.sh` | 開機待命的操作台（筆電或手機 SSH App 都行）：即時看紀錄；打 yes 解鎖後單鍵操作、不用 Enter；`q` 只離開操作台（鴨子停下），`Q` 結束 show | 透過 follow.app |
+| `standby_install.sh` | 開機待命開關：在使用者 crontab 加／刪一行 `@reboot`（不用 sudo）；`--remove`、`--show` | 否 |
 | `vision/setup_venv.sh` | 鴨子上建 `~/microduck-vision/.venv`（OpenCV），搭配上游 `vision_follow/push.sh` | 否 |
 | `tests/` | 假 robotd ＋ 簡單模擬世界的離線測試 | 否 |
 
@@ -88,6 +91,17 @@ python3 -m follow.app --camera /dev/videoN --live          # 真的會動（會�
 python3 -m follow.app --relay --live                       # 備案：瀏覽器中繼（mediad 不停）
 python3 -m follow.stand                                    # 讓鴨子站起來（會先問 yes）
 ```
+### 開機待命（11/26 新增，還沒上機）
+```bash
+bash follow/standby_install.sh          # 開：之後每次開機自動待命（只加一行 crontab）
+bash follow/standby_install.sh --remove # 關
+bash follow/console.sh                  # 操作台：扶好鴨子 → yes → 跟 show.sh 一樣的按鍵
+```
+- 開機時什麼都不會動：robotd 本來就是 Limp，follow.app 收到操作台的 `yes` 之前連 robotd 都不連。
+- show 不再跟著 SSH 一起結束，所以改成：**操作台或筆電語音斷線就送 stop**（跟以前 SSH 斷掉的效果一樣）。
+- 電池 ≤ 7.0 V 不啟動；當掉會重啟，最多 3 次；按 `q` 或被結束就不重啟。
+- `start_show.ps1` 會自動判斷：鴨子在待命就開操作台，沒有就照舊跑 show.sh。待命時直走距離用 standby.sh 的 `STANDBY_WALK_M`（預設 2），不是 `-WalkM`。
+
 終端機最下面一行是即時狀態（模式·階段、原因、電壓、CPU、相機、語音、上一句指令），事件印在它上面。輸出導到檔案（`| tee show.log`）時改成每 5 秒一行。
 
 ### 相機（決定：演出時停 mediad、直接讀；還沒在鴨子上驗證）

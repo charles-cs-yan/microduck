@@ -51,7 +51,8 @@ from typing import Callable, Optional
 from .motion import MotionGuard, install_signal_handlers
 from .robotd_client import DEFAULT_SOCKET, RobotdClient, RobotdError
 from .safety import Limits, hard_problem
-from .sources import COMMANDS, CommandQueue, Frame, NullSource, ProcessDetectionSource, Recorder, ReplaySource
+from .sources import (COMMANDS, CommandQueue, Frame, NullSource, ProcessDetectionSource, Recorder, ReplaySource,
+                      parse_command)
 from .speech import VoiceCommands, default_python
 from .status import StatusPrinter, compose
 from .tracker import Decision, FollowCycle, Tracker, TrackerOptions
@@ -753,20 +754,28 @@ class FollowApp:
             time.sleep(max(0.0, period - (self._clock() - started)))
 
 
-def start_command_pipe(path: Path, commands: CommandQueue, say: Callable[[str], None]) -> threading.Thread:
+def make_fifo(path: Path, flag: str) -> None:
+    import os
+    import stat
+
+    if path.exists() and not stat.S_ISFIFO(path.stat().st_mode):
+        raise SystemExit(f"{flag} {path} 已存在但不是 FIFO")
+    if not path.exists():
+        os.mkfifo(path, 0o600)
+
+
+def start_command_pipe(path: Path, commands: CommandQueue, say: Callable[[str], None],
+                       stop_on_eof: bool = False) -> threading.Thread:
     """Read command labels from a named pipe on a daemon thread, as source "voice".
 
     The writer (the laptop's recogniser over SSH) may come and go: on EOF the pipe is reopened.
     Unknown lines are logged and ignored; nothing here can move the duck except through the
     same CommandQueue and gates as the keyboard.
-    """
-    import os
-    import stat
 
-    if path.exists() and not stat.S_ISFIFO(path.stat().st_mode):
-        raise SystemExit(f"--command-pipe {path} 已存在但不是 FIFO")
-    if not path.exists():
-        os.mkfifo(path, 0o600)
+    `stop_on_eof` (standby): the show no longer dies with the SSH session, so a writer that goes
+    away — the laptop or the Wi-Fi dropped — queues a "stop" instead, as losing SSH used to.
+    """
+    make_fifo(path, "--command-pipe")
 
     def reader() -> None:
         while True:
@@ -780,10 +789,79 @@ def start_command_pipe(path: Path, commands: CommandQueue, say: Callable[[str], 
                         continue
                     say(f"筆電語音：{label}")
                     commands.put(label, source="voice")
+            if stop_on_eof:
+                say("筆電語音斷線：停下（重新連上後可繼續下指令）")
+                commands.put("stop", source="keyboard")  # a link stop, not a heard word: no ack sound
 
     thread = threading.Thread(target=reader, name="follow-command-pipe", daemon=True)
     thread.start()
     return thread
+
+
+class KeyPipe:
+    """Standby (`--standby`): operator keys arrive on a named pipe instead of stdin.
+
+    The show runs from boot with no terminal (follow/standby.sh), so the console
+    (follow/console.sh, over SSH) writes the operator's lines here. Nothing is armed until a
+    console sends the line "yes" — the same typed confirmation as the stdin prompt — and only
+    after that do lines become commands (source "keyboard", exactly like stdin). A console that
+    goes away after arming queues a "stop", as a dropped SSH session did before.
+    """
+
+    def __init__(self, path: Path, say: Callable[[str], None]):
+        make_fifo(path, "--key-pipe")
+        self.path = path
+        self.say = say
+        self.armed = threading.Event()
+        self.commands: Optional[CommandQueue] = None
+        self._lock = threading.Lock()
+
+    def start(self) -> "KeyPipe":
+        threading.Thread(target=self._reader, name="follow-key-pipe", daemon=True).start()
+        return self
+
+    def attach(self, commands: CommandQueue) -> None:
+        with self._lock:
+            self.commands = commands
+
+    def feed(self, line: str) -> None:
+        """One line from the console (also the unit-test entry point)."""
+        text = line.strip().lower()
+        if not self.armed.is_set():
+            if text == "yes":
+                self.armed.set()
+                self.say("✓ 已解鎖：開始接受指令")
+            else:
+                self.say(f"還沒解鎖（收到 {text!r}）：扶好鴨子後在操作台輸入 yes")
+            return
+        if text == "yes":
+            self.say("已經解鎖了")
+            return
+        with self._lock:
+            commands = self.commands
+        if commands is None:
+            return
+        command = parse_command(line)
+        if command is None:
+            self.say(f"不認得的指令：{line.strip()!r}")
+        else:
+            commands.put(command, source="keyboard")
+
+    def closed(self) -> None:
+        """The console's writer went away (EOF)."""
+        with self._lock:
+            commands = self.commands
+        if self.armed.is_set() and commands is not None:
+            self.say("操作台斷線：停下（重新連上 console 後可繼續）")
+            commands.put("stop", source="keyboard")
+
+    def _reader(self) -> None:
+        while True:
+            with open(self.path, "r", encoding="utf-8", errors="replace") as fifo:  # blocks until a writer
+                self.say("操作台已連上")
+                for line in fifo:
+                    self.feed(line.rstrip("\n"))
+            self.closed()
 
 
 def main(argv=None) -> int:
@@ -831,6 +909,11 @@ def main(argv=None) -> int:
     parser.add_argument("--command-pipe", metavar="FIFO",
                         help="also take voice commands, one label per line, from this named pipe "
                              "(the laptop's speech recogniser, follow/voice/asr_bridge.py)")
+    parser.add_argument("--standby", action="store_true",
+                        help="started at boot with no terminal (follow/standby.sh): keys come from --key-pipe "
+                             "and the typed \"yes\" too; a console or voice link that drops queues a stop")
+    parser.add_argument("--key-pipe", metavar="FIFO",
+                        help="operator key lines from this named pipe (follow/console.sh writes it); needs --standby")
     args = parser.parse_args(argv)
     if not 0.1 <= args.kws_threshold <= 0.6:
         parser.error("--kws-threshold 必須在 0.1..0.6")
@@ -852,6 +935,10 @@ def main(argv=None) -> int:
     if args.live and not live_source and not args.scripted:
         print("--live 需要 --camera 或 --relay：不是這台鴨子即時相機的偵測結果，不能拿來驅動它。", file=sys.stderr)
         return 2
+    if args.standby and not (args.scripted and args.key_pipe):
+        parser.error("--standby 需要 --scripted 和 --key-pipe（開機待命不用相機，按鍵從 FIFO 來）")
+    if args.key_pipe and not args.standby:
+        parser.error("--key-pipe 只用在 --standby")
     hot_joint, hot_max = "", 65.0
     if args.hot_joint:
         try:
@@ -866,7 +953,19 @@ def main(argv=None) -> int:
 
     # Signals first, so SIGTERM/SIGHUP at any later point still runs the finally below.
     install_signal_handlers()
-    if not dry_run:
+    keys = None
+    if args.standby:
+        # No terminal: the console sends the confirmation down the key pipe. Nothing below (robotd
+        # connection, guard, voice pipe) starts until it does, exactly like the stdin prompt.
+        keys = KeyPipe(Path(args.key_pipe), say=lambda m: print(m, flush=True)).start()
+        print(f"開機待命{'（LIVE）' if not dry_run else '（DRY RUN）'}：等操作台（follow/console.sh）輸入 yes 解鎖", flush=True)
+        try:
+            while not keys.armed.wait(0.5):
+                pass
+        except KeyboardInterrupt:
+            print("已取消，什麼都沒啟動。", flush=True)
+            return 1
+    elif not dry_run:
         print("⚠ LIVE：鴨子會真的走路、轉身、轉頭。請確認有人在旁邊扶著、周圍淨空。")
         print("輸入 yes 後按 Enter 開始；其他任何輸入都會取消：", end="", flush=True)
         try:
@@ -920,9 +1019,13 @@ def main(argv=None) -> int:
                 if args.record:
                     recorder = app.recorder = Recorder(args.record)
                     say(f"錄下偵測結果：{args.record}")
-                commands.read_lines(log=say)
+                if keys is not None:
+                    keys.say = say
+                    keys.attach(commands)
+                else:
+                    commands.read_lines(log=say)
                 if args.command_pipe:
-                    start_command_pipe(Path(args.command_pipe), commands, say)
+                    start_command_pipe(Path(args.command_pipe), commands, say, stop_on_eof=args.standby)
                     say(f"語音（筆電辨識）：從 {args.command_pipe} 接收指令")
                 say("指令：f=跟隨 g=注視 w=打招呼 d=跳舞 h=回家 k=直走2公尺 s 或 Enter=停 q=結束 ｜ x=坐下 u=站起來 p=趴下 1=撿東西 2=翻滾 3/4=左/右踢（2、3、4 和從地上站起來都要連按兩次）")
                 if args.voice:

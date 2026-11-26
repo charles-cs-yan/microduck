@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-11-26|Boot standby (not yet on the duck)
+
+### Added
+
+- **Boot standby** (`follow/standby.sh`, `console.sh`, `standby_install.sh`): the scripted show starts at boot from one user-crontab `@reboot` line (no sudo) and waits. Nothing connects to robotd until a console sends `yes`; keys then arrive on `/tmp/microduck-keys`. If the console or the laptop voice link drops, the duck stops.
+- `follow.app --standby --key-pipe FIFO`; `start_show.ps1` opens the console when standby is running.
+
 ## 2026-11-24|First steps on the real duck, the show routine, public repository
 
 ### Added
