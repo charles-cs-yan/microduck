@@ -11,6 +11,9 @@
 # /tmp/microduck-keys, the laptop's voice down /tmp/microduck-voice. A console or voice link that
 # drops queues a stop. Log: ~/microduck-follow/standby.log
 set -u
+# cron's @reboot PATH is only /usr/bin:/bin, and robotctl lives in /usr/local/bin (11/26: the boot
+# standby read the battery as "unknown" twice because of this).
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin${PATH:+:$PATH}"
 BASE=${FOLLOW_HOME:-$HOME/microduck-follow}
 LOG="$BASE/standby.log"
 KEYS=/tmp/microduck-keys
