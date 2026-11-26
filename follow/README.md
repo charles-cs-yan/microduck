@@ -11,7 +11,7 @@ robotd 的客戶端：只透過 `/run/robotd.sock` 送意圖，不碰馬達、HO
 | `motion.py` | `MotionGuard`：唯一會送 `robot.move`、`robot.head`、`robot.mouth`、`robot.stop`、`robot.sound` 的地方 | **會**（`dry_run=True` 時不會） |
 | `safety.py` | 純函式：`Limits`、限幅、`motion_problem` 閘門（從 core.js 移植，v18 欄位） | 否 |
 | `tracker.py` | 純函式：`Tracker`、`FollowCycle`，逐行移植自 `vision_follow/core.js` | 否 |
-| `turning.py` | 純函式：依 `robot.state.odom.yaw` 閉環原地轉向 | 否 |
+| `turning.py` | 純函式：依 `robot.state.odom.yaw` 閉環原地轉向（`Turn`）；腳本模式回家用的定時轉向（`TimedTurn`，`--turn-seconds`） | 否 |
 | `greet.py` | 純函式：打招呼與跳舞的關鍵影格（頭、嘴、聲音、身體 pose），可循環 | 否 |
 | `sources.py` | 偵測來源（回放、相機子行程）、指令佇列、鍵盤備援 | 否 |
 | `speech.py` | 英文語音子行程 → 指令佇列 | 否 |
@@ -72,6 +72,7 @@ robotd 的客戶端：只透過 `/run/robotd.sock` 送意圖，不碰馬達、HO
   - **自動恢復（只限資料過期類）**：state／health／mode 過期、迴圈停頓、視訊沒新畫面、IMU 短暫重複、匯流排單次錯誤——狀況解除後，重新經過「確認零速 → 穩定 1 秒 → 新畫面」才可能再走。
   - **回到待命、要重新下指令**：倒地、卸力、策略變成 walk/stand 以外、保護、健康檢查不過、CPU／馬達過熱、跟隨或回家時電池過低。就算鴨子被扶起來也不會自己再走（和上游一樣）。
 - 跟隨中每段移動時也持續讀畫面，**目標一不見就立刻煞停**（不會走完 2.5 秒；畫面永遠不會延長一段移動）。
+- 腳本模式的回家轉身（11/26 起）是定時的：0.4 rad/s 轉 `--turn-seconds` 秒（預設 180° 約 8.7 秒），不看 odom；odom 實測太吵，閉環轉身每次 2 秒內就放棄。下面這行只適用閉環轉身（`--turn-seconds 0` 或對正轉身）。
 - 轉身：航向 2 秒沒變化（卡住或 dry-run）、往反方向轉超過 0.15 rad（odom 正負號不對）、轉過頭 0.3 rad、超過時限（180° 約 16 秒）、沒有 odom、閘門失敗 → 停下回 idle。
 - 送出執行緒或健康執行緒發生任何非預期例外 → 立刻停、記錄、鎖住（直到重新啟動程式），執行緒本身不會靜默死掉。
 - `robot.move` 在鎖內、重新確認意圖後才送，確保已確認的 `robot.stop` 之後不會冒出舊的 move（2026-11-23 審查 #1）。

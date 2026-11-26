@@ -3,7 +3,9 @@
 import math
 import unittest
 
-from follow.app import FollowApp
+from argparse import Namespace
+
+from follow.app import FollowApp, home_turn_seconds
 from follow.tests.test_posture import PostureHarness
 from follow.tests.test_straight import StraightWalkTest
 
@@ -55,6 +57,25 @@ class ScriptedShowTest(PostureHarness):
             self.assertEqual(m["vy"], 0.0)
             self.assertLessEqual(m["vx"], 0.12 + 1e-9)
 
+    def test_timed_home_turn_ignores_wrong_way_odom(self):
+        # 11/26 on the duck: odom.yaw drifted against the commanded turn and the closed loop gave up.
+        self.app.home_turn_seconds = 3.0
+        self.app.on_stage = True
+        self.commands.put("home")
+        self.tick()
+        self.assertEqual(self.app.mode, "home")
+        vyaws = []
+        for _ in range(200):
+            self.tick()
+            self.yaw -= 0.02           # heading reading drifts the wrong way
+            vyaws += [m["vyaw"] for m in self.moves()[-1:]]
+            if self.app.mode != "home":
+                break
+        self.assertEqual(self.app.mode, "straight", "timed turn finished, walking back")
+        self.assertTrue(any("定時 3 秒" in line for line in self.logs))
+        self.assertGreater(max(vyaws), 0.3, "left turn, ramped up")
+        self.assertLessEqual(max(vyaws), 0.40 + 1e-9)
+
     def test_keyboard_f_walks_straight(self):
         self.commands.put("follow")
         self.tick()
@@ -73,6 +94,19 @@ class ScriptedShowTest(PostureHarness):
         self.say("stop")
         self.tick()
         self.assertEqual(self.app.mode, "idle")
+
+
+class HomeTurnSecondsTest(unittest.TestCase):
+    def test_defaults_and_overrides(self):
+        def ns(**kw):
+            base = dict(scripted=True, home_turn=180.0, turn_seconds=None)
+            base.update(kw)
+            return Namespace(**base)
+        self.assertAlmostEqual(home_turn_seconds(ns()), 8.7)        # pi/0.4 + 0.4/0.5
+        self.assertEqual(home_turn_seconds(ns(turn_seconds=12)), 12.0)
+        self.assertIsNone(home_turn_seconds(ns(turn_seconds=0)))     # closed loop
+        self.assertIsNone(home_turn_seconds(ns(home_turn=0)))
+        self.assertIsNone(home_turn_seconds(ns(scripted=False)))
 
 
 if __name__ == "__main__":

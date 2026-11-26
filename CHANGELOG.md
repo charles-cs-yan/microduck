@@ -1,6 +1,17 @@
 # CHANGELOG
 
-## 2026-11-26|Boot standby (not yet on the duck)
+## 2026-11-26|Boot standby, timed home turn
+
+### Changed
+
+- **Scripted home turn is timed** (`follow/turning.py` `TimedTurn`): `h` / "Let's go home" turns at 0.4 rad/s for a fixed time (default 8.7 s for 180°; `--turn-seconds`, or `STANDBY_TURN_S` for the boot standby), then walks straight back. On the duck robotd applied the full turn rate, but `odom.yaw` (IMU-integrated, half its reads stale) wobbled ±0.1 rad and drifted the wrong way, so the closed-loop turn gave up within 2 s every time. The odom change is now only logged. `--turn-seconds 0` keeps the closed loop.
+- A rise counts as done only after 3 s of steady standing (robotd's limp-fall misfires right after a seated rise).
+- Boot standby: PATH set for cron, battery read waits up to 3 min.
+
+### Found on the duck
+
+- Walking cut power to the whole board: a ribbon cable had come loose. Plugged back in and fixed in place.
+- Seated rises can fall: robotd's `limp_fall` fires about 0.3 s after the rise, with the trunk still pitched about 45°. Turning it off in `/etc/robot/robotd.toml` is approved for the show but not applied yet.
 
 ### Added
 

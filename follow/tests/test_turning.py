@@ -1,7 +1,7 @@
 import math
 import unittest
 
-from follow.turning import DONE, FAILED, TURNING, Turn, TurnOptions, odom_yaw, wrap
+from follow.turning import DONE, FAILED, TURNING, TimedTurn, Turn, TurnOptions, odom_yaw, wrap
 
 
 def simulate(turn, yaw=0.0, dt=0.1, efficiency=1.0, steps=400, start=0.0):
@@ -28,6 +28,31 @@ class WrapTest(unittest.TestCase):
         self.assertEqual(odom_yaw({"odom": {"yaw": 0.5}}), 0.5)
         for bad in (None, {}, {"odom": {}}, {"odom": {"yaw": float("nan")}}, {"odom": {"yaw": True}}):
             self.assertIsNone(odom_yaw(bad))
+
+
+class TimedTurnTest(unittest.TestCase):
+    def test_runs_for_the_set_time_whatever_odom_says(self):
+        turn = TimedTurn(math.pi, 8.0, 0.0, 0.0)
+        status, _, commands = simulate(turn, efficiency=-0.5)   # odom goes the wrong way
+        self.assertEqual(status, DONE)
+        self.assertAlmostEqual(len(commands) * 0.1, 8.0, delta=0.15)
+        self.assertTrue(all(c >= 0 for c in commands))
+        self.assertAlmostEqual(max(commands), 0.40)
+        self.assertLess(commands[0], 0.1, "ramps up from standstill")
+        self.assertIn("僅供校正", turn.reason)
+
+    def test_right_turn_and_missing_odom(self):
+        turn = TimedTurn(-math.pi / 2, 2.0, None, 0.0)
+        status, _, commands = simulate(turn)
+        self.assertEqual(status, DONE)
+        self.assertTrue(all(c <= 0 for c in commands))
+
+    def test_rejects_bad_values(self):
+        for args in ((0.0, 5.0), (math.pi, 0.5), (math.pi, 31.0), (4.0, 5.0)):
+            with self.assertRaises(ValueError):
+                TimedTurn(args[0], args[1], 0.0, 0.0)
+        with self.assertRaises(ValueError):
+            TimedTurn(math.pi, 5.0, 0.0, 0.0, rate=0.6)
 
 
 class TurnTest(unittest.TestCase):

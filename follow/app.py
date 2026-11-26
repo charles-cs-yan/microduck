@@ -56,7 +56,7 @@ from .sources import (COMMANDS, CommandQueue, Frame, NullSource, ProcessDetectio
 from .speech import VoiceCommands, default_python
 from .status import StatusPrinter, compose
 from .tracker import Decision, FollowCycle, Tracker, TrackerOptions
-from .turning import DONE, FAILED, TURNING, Turn, TurnOptions, odom_yaw
+from .turning import DONE, FAILED, TURNING, TimedTurn, Turn, TurnOptions, odom_yaw
 from .greet import DANCE, DANCE_MAX, GREETING, Routine
 from .posture import (BUSY_POLICIES, CROUCH, SITTING_POLICIES, STANDING_POLICIES, STATE_FRESH,
                       bring_up_problem, rise_problem, still)
@@ -93,12 +93,23 @@ def default_tracker_options(target_id: Optional[int] = 0, forward: float = 0.12)
                           forward=min(forward, TRACKER_FORWARD_MAX))
 
 
+def home_turn_seconds(args) -> Optional[float]:
+    """Seconds for the scripted open-loop home turn, or None for the closed loop."""
+    if not getattr(args, "scripted", False) or args.home_turn == 0 or args.turn_seconds == 0:
+        return None
+    if args.turn_seconds is not None:
+        return float(args.turn_seconds)
+    o = TurnOptions()
+    return round(math.radians(abs(args.home_turn)) / o.max_rate + o.max_rate / o.accel, 1)
+
+
 class FollowApp:
     def __init__(self, guard: MotionGuard, source, commands: CommandQueue, *,
                  tracker: Optional[Tracker] = None, cycle: Optional[FollowCycle] = None,
                  video_timeout: float = 10.0, stall_seconds: float = 0.4, moving_frame_timeout: float = 1.5,
                  turn_options: TurnOptions = TurnOptions(), align_threshold: float = 0.30,
                  home_angle: float = math.pi, scripted: bool = False, walk_m: float = STRAIGHT_DISTANCE,
+                 home_turn_seconds: Optional[float] = None,
                  clock: Callable[[], float] = time.monotonic, log: Callable[[str], None] = print):
         if not 0.15 <= align_threshold <= 0.6:
             raise ValueError("align_threshold 必須在 0.15..0.6 rad（頭部 yaw 上限是 0.6）")
@@ -118,6 +129,8 @@ class FollowApp:
         self.turn_options = turn_options
         self.align_threshold = align_threshold
         self.home_angle = home_angle
+        # Scripted home turn runs open-loop for this many seconds (None = closed loop on odom.yaw).
+        self.home_turn_seconds = home_turn_seconds
         # Scripted show (no camera): "follow" walks straight walk_m metres; "home" turns, then walks
         # straight back. on_stage remembers which of the two "Let's go" means.
         self.scripted = scripted
@@ -126,7 +139,7 @@ class FollowApp:
         self.straight_distance = walk_m
         self.straight_timeout = STRAIGHT_TIMEOUT
         self.straight_from = (None, None, 0.0)
-        self.turn: Optional[Turn] = None
+        self.turn = None   # Turn or TimedTurn
         self.turn_kind: Optional[str] = None   # "align" or "home"
         self.turn_head = list(ZERO_HEAD)
         self.routine: Optional[Routine] = None
@@ -541,10 +554,17 @@ class FollowApp:
     # ── turning ──────────────────────────────────────────────────────────────
     def _start_turn(self, kind: str, delta: float, now: float, head=None) -> None:
         label = "回家轉身" if kind == "home" else "對正轉身"
-        self.turn = Turn(delta, odom_yaw(self.guard.client.state), now, self.turn_options, label)
+        yaw = odom_yaw(self.guard.client.state)
+        if kind == "home" and self.scripted and self.home_turn_seconds:
+            # 11/26: odom.yaw is too noisy for the closed loop (see TimedTurn); turn for a set time.
+            self.turn = TimedTurn(delta, self.home_turn_seconds, yaw, now,
+                                  rate=self.turn_options.max_rate, accel=self.turn_options.accel, label=label)
+            self._log(f"{label}：{math.degrees(delta):+.0f}°（正值左轉），定時 {self.home_turn_seconds:g} 秒")
+        else:
+            self.turn = Turn(delta, yaw, now, self.turn_options, label)
+            self._log(f"{label}：{math.degrees(delta):+.0f}°（正值左轉）")
         self.turn_kind = kind
         self.turn_head = list(head) if head is not None else list(ZERO_HEAD)
-        self._log(f"{label}：{math.degrees(delta):+.0f}°（正值左轉）")
         if self.turn.status == FAILED:
             reason = self.turn.reason
             self.turn, self.turn_kind = None, None
@@ -906,6 +926,9 @@ def main(argv=None) -> int:
     parser.add_argument("--home-turn", type=float, default=180.0, metavar="DEG",
                         help="'home' first turns this many degrees in place (+ = left); 0 = no fixed "
                              "turn, just follow the host (the align turn faces them)")
+    parser.add_argument("--turn-seconds", type=float, default=None, metavar="S",
+                        help="scripted home turn: turn for S seconds without odometry (1..30; default "
+                             "= the nominal time at 0.4 rad/s, about 8 s for 180°); 0 = closed loop on odom.yaw")
     parser.add_argument("--voice", action="store_true", help="English voice commands (follow/voice/kws_listen.py)")
     parser.add_argument("--speech-dir", type=Path, default=Path.home() / "microduck-speech" / "current")
     parser.add_argument("--mic", default="hw:microducki2s3,0", help="ALSA input device for --voice (native hw node)")
@@ -929,6 +952,8 @@ def main(argv=None) -> int:
         parser.error("--kws-threshold 必須在 0.1..0.6")
     if not (args.home_turn == 0 or 30 <= abs(args.home_turn) <= 180):
         parser.error("--home-turn 必須是 0 或 ±30..±180 度")
+    if args.turn_seconds is not None and args.turn_seconds != 0 and not 1 <= args.turn_seconds <= 30:
+        parser.error("--turn-seconds 必須是 0 或 1..30 秒")
     if not 0.2 <= args.detect_hz <= 5:
         print("--detect-hz 必須在 0.2..5（溫度限制）", file=sys.stderr)
         return 2
@@ -1022,10 +1047,11 @@ def main(argv=None) -> int:
                 tracker = Tracker(default_tracker_options(args.target_id, args.forward))
                 app = FollowApp(guard, source, commands, tracker=tracker, log=say,
                                 home_angle=math.radians(args.home_turn), scripted=args.scripted,
-                                walk_m=args.walk_m)
+                                walk_m=args.walk_m, home_turn_seconds=home_turn_seconds(args))
                 if args.scripted:
                     say(f"腳本模式（不用相機）：f / Let's go = 直走 {args.walk_m:g} 公尺上台；"
-                        f"h / Let's go home = 轉身 {args.home_turn:g}° 再直走回來")
+                        f"h / Let's go home = 轉身 {args.home_turn:g}° 再直走回來"
+                        + (f"（定時 {home_turn_seconds(args):g} 秒）" if home_turn_seconds(args) else ""))
                 if args.record:
                     recorder = app.recorder = Recorder(args.record)
                     say(f"錄下偵測結果：{args.record}")

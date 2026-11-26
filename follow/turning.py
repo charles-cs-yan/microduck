@@ -126,3 +126,62 @@ class Turn:
         speed = min(self.o.max_rate, max(self.o.min_rate, self.o.gain * abs(remaining)))
         speed = min(speed, self.o.accel * max(0.0, now - self.started))
         return math.copysign(speed, remaining), self.status
+
+
+class TimedTurn:
+    """Open-loop in-place turn: command `rate` for a fixed time, ignoring odometry.
+
+    11/26 on the duck: robotd applied the full 0.4 rad/s, but odom.yaw (IMU-integrated, no
+    magnetometer, half its reads stale) wobbled ±0.1 rad with the gait and drifted the wrong way,
+    so the closed-loop Turn aborted within 2 s every time ("wrong way" / "no change"). The
+    scripted show only needs "turn round": run the command for `seconds` (calibrated on stage)
+    and let the operator stop it. The odom change is logged for calibration, never acted on.
+    Same interface as Turn: update(now, yaw) -> (vyaw, status), .remaining, .reason, .label.
+    """
+
+    def __init__(self, delta: float, seconds: float, start_yaw: Optional[float], now: float,
+                 rate: float = 0.40, accel: float = 0.5, label: str = "轉身"):
+        if not _finite(delta) or delta == 0 or abs(delta) > math.pi + 1e-6:
+            raise ValueError("轉角必須是 -π..π 之間、非 0 的有限數字")
+        if not _finite(seconds) or not 1.0 <= seconds <= 30.0:
+            raise ValueError("轉身秒數必須在 1..30")
+        if not _finite(rate) or not 0.15 <= rate <= 0.5:
+            raise ValueError("轉速必須在 0.15..0.5 rad/s")
+        if not _finite(accel) or accel <= 0:
+            raise ValueError("accel 必須是正數")
+        self.delta = float(delta)
+        self.seconds = float(seconds)
+        self.rate = float(rate)
+        self.accel = float(accel)
+        self.label = label
+        self.started = now
+        self.commanded = 0.0        # integral of the vyaw we sent (rad), for the progress display
+        self.last_now = now
+        self.start_yaw = start_yaw
+        self.last_yaw = start_yaw
+        self.odom_turned = 0.0      # logged only
+        self.status = TURNING
+        self.reason = ""
+
+    @property
+    def remaining(self) -> float:
+        return math.copysign(max(0.0, abs(self.delta) - abs(self.commanded)), self.delta)
+
+    def update(self, now: float, yaw: Optional[float]) -> Tuple[float, str]:
+        if self.status != TURNING:
+            return 0.0, self.status
+        if yaw is not None and self.last_yaw is not None:
+            self.odom_turned += wrap(yaw - self.last_yaw)
+        if yaw is not None:
+            self.last_yaw = yaw
+        elapsed = now - self.started
+        if elapsed >= self.seconds:
+            self.status = DONE
+            self.reason = (f"{self.label}完成（定時 {self.seconds:g} 秒；odom 讀到 "
+                           f"{math.degrees(self.odom_turned):+.0f}°，僅供校正）")
+            return 0.0, self.status
+        speed = min(self.rate, self.accel * max(0.0, elapsed))
+        vyaw = math.copysign(speed, self.delta)
+        self.commanded += vyaw * max(0.0, now - self.last_now)
+        self.last_now = now
+        return vyaw, self.status

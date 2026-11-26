@@ -19,6 +19,7 @@ LOG="$BASE/standby.log"
 KEYS=/tmp/microduck-keys
 VOICE=/tmp/microduck-voice
 WALK_M=${STANDBY_WALK_M:-2}
+TURN_S=${STANDBY_TURN_S:-}   # home-turn seconds (open loop); empty = app default (~8 s for 180°)
 PATTERN='follow.app .*--standby'
 
 running() { pgrep -u "$(id -u)" -f -- "$PATTERN" >/dev/null; }
@@ -65,7 +66,7 @@ for attempt in 1 2 3; do
   fi
   echo "$(date '+%F %T') 電池 ${volts} V；第 $attempt 次啟動 follow.app"
   python3 -u -m follow.app --live --scripted --standby --walk-m "$WALK_M" \
-    --key-pipe "$KEYS" --command-pipe "$VOICE" --hot-joint left_hip_roll:80
+    --key-pipe "$KEYS" --command-pipe "$VOICE" --hot-joint left_hip_roll:80 ${TURN_S:+--turn-seconds "$TURN_S"}
   code=$?
   echo "$(date '+%F %T') follow.app 結束（代碼 $code）"
   # 0 = quit on purpose (q), 1 = cancelled, 130/143 = signal: do not restart.
