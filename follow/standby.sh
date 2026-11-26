@@ -51,8 +51,9 @@ for _ in $(seq 90); do [ -S /run/robotd.sock ] && break; sleep 2; done
 for attempt in 1 2 3; do
   # Battery floor, as show.sh: refuse at or below 7.0 V or when it cannot be read. MotionGuard keeps
   # checking while it runs; this only stops a flat battery from starting at all.
-  # Right after boot the motor bus may not report yet: give it a minute to read a number.
-  for _ in $(seq 30); do
+  # Right after boot the motor bus may not report yet: give it 3 minutes to read a number
+  # (11/26: a minute was not enough, the boot standby gave up with "battery unknown").
+  for _ in $(seq 90); do
     volts=$(robotctl health 2>&1 | sed -n 's/.*battery *\([0-9.]*\) V.*/\1/p' | head -1)
     [ -n "$volts" ] && break; sleep 2
   done
